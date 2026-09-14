@@ -6,41 +6,92 @@
 <title>Acesso administrativo — Tati & Oyama</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%81%3C/text%3E%3C/svg%3E">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root{ --rosa-900:#7A1F44; --rosa-700:#C2185B; --rosa-200:#F7C6D9; --rosa-50:#FFF3F7; --tinta:#3B2430; --tinta-suave:#8A6773; }
-  *{box-sizing:border-box;}
-  body{margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg,var(--rosa-50),#fff 60%); font-family:'Manrope',sans-serif; color:var(--tinta); padding:24px;}
-  .card{background:#fff; width:100%; max-width:400px; border-radius:26px; padding:40px 34px; box-shadow:0 24px 60px -30px rgba(122,31,68,.4); border:1px solid var(--rosa-200);}
-  .mark{width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,var(--rosa-700),var(--rosa-900)); display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin-bottom:18px;}
-  h1{font-family:'Fraunces',serif; font-size:1.5rem; margin:0 0 6px; color:var(--rosa-900);}
-  p.sub{color:var(--tinta-suave); margin:0 0 26px; font-size:.92rem;}
-  label{font-size:.82rem; font-weight:700; display:block; margin-bottom:6px;}
-  input{width:100%; padding:12px 14px; border-radius:12px; border:1.5px solid var(--rosa-200); font-family:inherit; font-size:.95rem; margin-bottom:16px;}
-  input:focus{outline:none; border-color:var(--rosa-700);}
-  button{width:100%; padding:13px; border:none; border-radius:999px; background:var(--rosa-700); color:#fff; font-weight:800; font-size:.95rem; cursor:pointer;}
-  button:disabled{opacity:.6; cursor:default;}
-  .msg{font-size:.85rem; margin-top:14px; padding:10px 12px; border-radius:10px;}
-  .msg.err{background:#FDE8EE; color:#9B1C46;}
-  .msg.ok{background:#E7F7EE; color:#1B7A43;}
-  .back{display:block; text-align:center; margin-top:20px; font-size:.85rem; color:var(--tinta-suave); text-decoration:none;}
-  .back:hover{color:var(--rosa-700);}
+  :root{
+    --bg:#FDFBF7; --bg-alt:#F5F0E8; --cocoa:#2D241E; --cocoa-muted:#6B5D52;
+    --order:#B8860B; --line:rgba(45,36,30,.1); --line-strong:rgba(45,36,30,.2);
+    --serif:'Cormorant Garamond',Georgia,serif; --sans:'Inter',sans-serif;
+    --ease:cubic-bezier(0.16,1,0.3,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--bg); font-family:var(--sans); color:var(--cocoa);
+    padding:24px; -webkit-font-smoothing:antialiased;
+    position:relative; overflow:hidden;
+  }
+  body::before{
+    content:''; position:absolute; top:-50%; right:-20%; width:60%; height:100%;
+    background:radial-gradient(circle,rgba(184,134,11,.06),transparent 70%);
+    pointer-events:none;
+  }
+  body::after{
+    content:''; position:absolute; bottom:-30%; left:-20%; width:50%; height:80%;
+    background:radial-gradient(circle,rgba(85,107,47,.05),transparent 70%);
+    pointer-events:none;
+  }
+  .login-card{
+    background:rgba(253,251,247,.85); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    width:100%; max-width:400px; border-radius:20px; padding:48px 40px;
+    border:.5px solid var(--line); box-shadow:0 24px 60px -30px rgba(45,36,30,.2);
+    position:relative; z-index:1;
+  }
+  .mark{
+    width:52px; height:52px; border-radius:50%;
+    background:linear-gradient(135deg,var(--order),var(--cocoa));
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.5rem; margin-bottom:24px;
+  }
+  .eyebrow{font-size:.72rem; font-weight:500; text-transform:uppercase; letter-spacing:.18em; color:var(--cocoa-muted); margin-bottom:.8rem; display:block;}
+  h1{font-family:var(--serif); font-size:1.8rem; font-weight:500; margin:0 0 8px; color:var(--cocoa); letter-spacing:-.01em;}
+  p.sub{color:var(--cocoa-muted); margin:0 0 32px; font-size:.92rem; font-weight:300;}
+  label{font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.1em; display:block; margin-bottom:6px; color:var(--cocoa-muted);}
+  input{
+    width:100%; padding:13px 16px; border-radius:12px;
+    border:.5px solid var(--line-strong); font-family:inherit; font-size:.95rem;
+    margin-bottom:18px; background:rgba(255,255,255,.6); color:var(--cocoa);
+    transition:border-color .3s ease;
+  }
+  input:focus{outline:none; border-color:var(--cocoa);}
+  input::placeholder{color:var(--cocoa-muted); opacity:.6;}
+  button{
+    width:100%; padding:14px; border:none; border-radius:999px;
+    background:var(--cocoa); color:var(--bg); font-weight:600;
+    font-size:.82rem; text-transform:uppercase; letter-spacing:.12em;
+    cursor:pointer; transition:all .4s var(--ease);
+  }
+  button:hover:not(:disabled){background:var(--order);}
+  button:disabled{opacity:.5; cursor:default;}
+  .msg{font-size:.85rem; margin-top:16px; padding:12px 14px; border-radius:10px; font-weight:400;}
+  .msg.err{background:rgba(180,40,40,.08); color:#9B1C46; border:.5px solid rgba(180,40,40,.15);}
+  .msg.ok{background:rgba(85,107,47,.08); color:var(--order); border:.5px solid rgba(85,107,47,.15);}
+  .back{display:block; text-align:center; margin-top:24px; font-size:.82rem; color:var(--cocoa-muted); text-decoration:none; transition:color .3s ease;}
+  .back:hover{color:var(--cocoa);}
+  .divider{height:.5px; background:var(--line); margin:28px 0;}
+  .loc-hint{text-align:center; font-size:.78rem; color:var(--cocoa-muted); font-weight:300; line-height:1.6;}
+  .loc-hint strong{color:var(--cocoa); font-weight:500;}
 </style>
 </head>
 <body>
-  <div class="card">
+  <div class="login-card">
     <div class="mark">🔒</div>
+    <span class="eyebrow">Tati & Oyama</span>
     <h1>Área administrativa</h1>
-    <p class="sub">Entre com seu usuário ou e-mail para gerenciar o site da Tati & Oyama.</p>
+    <p class="sub">Entre com seu usuário ou e-mail para gerenciar o site.</p>
     <form id="loginForm">
       <label for="ident">Usuário ou e-mail</label>
-      <input id="ident" autocomplete="username" placeholder="usuario ou seu@email.com" required>
+      <input id="ident" autocomplete="username" placeholder="tatioyama ou seu@email.com" required>
       <label for="pass">Senha</label>
       <input id="pass" type="password" autocomplete="current-password" placeholder="••••••••" required>
       <button id="submitBtn" type="submit">Entrar</button>
     </form>
     <div id="msg"></div>
+    <div class="divider"></div>
+    <div class="loc-hint">Confeitaria artesanal em <strong>Duartina — SP</strong></div>
     <a class="back" href="../index.html">← Voltar para o site</a>
   </div>
 
@@ -49,7 +100,6 @@ const SUPABASE_URL = "https://muyafaecbftctxvwxpyy.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_efNcP5ircj5xCyEPnGilZg_a9EbNBlQ";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// já logado? manda direto pro painel
 sb.auth.getSession().then(({data}) => {
   if(data.session) window.location.href = 'painel.html';
 });
