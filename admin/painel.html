@@ -63,6 +63,37 @@
   .empty{color:var(--cocoa-muted); text-align:center; padding:24px; font-weight:300;}
 
   .pill{display:inline-block; font-size:.7rem; font-weight:600; padding:4px 10px; border-radius:999px; text-transform:uppercase; letter-spacing:.05em;}
+  tr.order-new{background:rgba(192,67,62,.05);}
+  .new-dot{width:10px;height:10px;border-radius:50%;background:#C0433E;display:inline-block;box-shadow:0 0 0 rgba(192,67,62,.5);animation:pulseDot 1.8s infinite;}
+  @keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(192,67,62,.45);}70%{box-shadow:0 0 0 7px rgba(192,67,62,0);}100%{box-shadow:0 0 0 0 rgba(192,67,62,0);}}
+  .type-pill{display:inline-block;font-size:.66rem;font-weight:700;padding:3px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.04em;margin:1px 3px 1px 0;white-space:nowrap;}
+  .type-pill.ready{background:rgba(85,107,47,.15);color:var(--ready);}
+  .type-pill.order{background:rgba(184,134,11,.15);color:var(--order);}
+  .type-pill.unknown{background:var(--bg-alt);color:var(--cocoa-muted);}
+  .sales-tabs{display:flex;gap:8px;margin-bottom:18px;}
+  .sales-tab{padding:10px 20px;border-radius:10px;border:1.5px solid var(--line-strong);background:#fff;font-weight:600;font-size:.86rem;cursor:pointer;color:var(--cocoa-muted);}
+  .sales-tab.active{background:var(--cocoa);color:#fff;border-color:var(--cocoa);}
+  .pos-layout{display:grid;grid-template-columns:1.6fr 1fr;gap:22px;align-items:start;}
+  .pos-cat-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+  .pos-cat-tile{padding:12px 18px;border-radius:10px;border:1.5px solid var(--line-strong);background:#fff;font-weight:600;font-size:.82rem;cursor:pointer;color:var(--cocoa);}
+  .pos-cat-tile.active{background:var(--order);color:#fff;border-color:var(--order);}
+  .pos-prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;}
+  .pos-prod-tile{border-radius:12px;border:1px solid var(--line-strong);background:#fff;overflow:hidden;cursor:pointer;text-align:center;transition:transform .15s ease,box-shadow .15s ease;}
+  .pos-prod-tile:hover{transform:translateY(-2px);box-shadow:0 10px 22px -10px rgba(61,43,31,.3);}
+  .pos-prod-tile .thumb{width:100%;aspect-ratio:1;background:var(--bg-alt);display:flex;align-items:center;justify-content:center;font-size:1.8rem;overflow:hidden;}
+  .pos-prod-tile .thumb img{width:100%;height:100%;object-fit:cover;}
+  .pos-prod-tile .pinfo{padding:8px 6px 10px;}
+  .pos-prod-tile .pinfo b{display:block;font-size:.78rem;color:var(--cocoa);line-height:1.25;margin-bottom:3px;min-height:2em;}
+  .pos-prod-tile .pinfo span{font-size:.8rem;font-weight:700;color:var(--cta,#B3402A);}
+  .pos-cart-col{background:var(--bg-alt);border-radius:14px;padding:18px;position:sticky;top:18px;}
+  .pos-cart-col h4{font-size:1rem;margin-bottom:12px;color:var(--cocoa);}
+  .pdv-item-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:.5px solid var(--line);font-size:.86rem;flex-wrap:wrap;}
+  .pdv-item-row .pdv-item-controls{display:flex;align-items:center;gap:6px;}
+  .pay-methods{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .pay-btn{padding:10px 16px;border-radius:10px;border:1.5px solid var(--line-strong);background:#fff;font-weight:600;font-size:.84rem;cursor:pointer;transition:all .2s ease;color:var(--cocoa);}
+  .pay-btn:hover{border-color:var(--cocoa);}
+  .pay-btn.active{background:var(--cocoa);color:#fff;border-color:var(--cocoa);}
+  .pdv-total{font-family:var(--serif);font-size:1.7rem;color:var(--cocoa);margin-top:16px;}
   .pill.on{background:rgba(85,107,47,.12); color:var(--ready);}
   .pill.off{background:rgba(45,36,30,.08); color:var(--cocoa-muted);}
 
@@ -200,13 +231,67 @@
       <form class="stack" id="settingsForm"></form>
       <div class="locked-note" id="settingsLockNote" style="display:none">Campos em cinza só podem ser alterados pela Serf Tecnologia (MASTER).</div>
     </div>
+    <div class="card">
+      <h3>Histórico de cores</h3>
+      <p class="hint">Toda vez que uma cor é alterada, a combinação anterior fica salva aqui. Dá pra restaurar quando quiser.</p>
+      <div id="colorHistoryList" class="stack"></div>
+    </div>
   </section>
 
-  <section class="panel" id="panel-pedidos">
-    <div class="card">
-      <h3>Pedidos / solicitações</h3>
-      <p class="hint">Registro dos pedidos enviados pelo "Monte seu pedido" no site.</p>
-      <div style="overflow-x:auto"><table id="ordersTable"><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th>Observação</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+  <section class="panel" id="panel-vendas">
+    <div class="sales-tabs">
+      <button class="sales-tab active" id="tabBtnPedidos" onclick="switchSalesTab('pedidos')">Pedidos do site</button>
+      <button class="sales-tab" id="tabBtnPdv" onclick="switchSalesTab('pdv')">PDV / Caixa</button>
+    </div>
+
+    <div id="salesTabPedidos">
+      <div class="card">
+        <h3>Pedidos / solicitações</h3>
+        <p class="hint">Registro dos pedidos enviados pelo "Monte seu pedido" no site.</p>
+        <div id="newOrdersBanner" style="display:none;margin-bottom:14px;padding:12px 16px;background:rgba(192,67,62,.08);border:1px solid rgba(192,67,62,.25);border-radius:10px;font-size:.86rem;font-weight:600;color:#B0233F;"></div>
+        <div style="overflow-x:auto"><table id="ordersTable"><thead><tr><th></th><th>Data</th><th>Cliente</th><th>Itens</th><th>Tipo</th><th>Observação</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <div id="salesTabPdv" style="display:none">
+      <div class="card">
+        <h3>Nova venda (PDV)</h3>
+        <p class="hint">Toque na categoria, depois no produto para lançar. Ao finalizar, o estoque é atualizado automaticamente.</p>
+        <div class="pos-layout">
+          <div>
+            <div class="pos-cat-row" id="posCatRow"></div>
+            <div class="pos-prod-grid" id="posProdGrid"></div>
+          </div>
+          <div class="pos-cart-col">
+            <h4>Venda atual</h4>
+            <div id="pdvCartList"></div>
+            <p class="empty" id="pdvCartEmpty">Nenhum item adicionado ainda.</p>
+            <div class="pdv-total">Total: <span id="pdvTotal">R$ 0,00</span></div>
+
+            <label style="margin-top:14px">Forma de pagamento</label>
+            <div class="pay-methods" id="pdvPayMethods">
+              <button type="button" class="pay-btn" data-val="dinheiro" onclick="pdvSetPayment('dinheiro')">💵 Dinheiro</button>
+              <button type="button" class="pay-btn" data-val="pix" onclick="pdvSetPayment('pix')">📱 PIX</button>
+              <button type="button" class="pay-btn" data-val="credito" onclick="pdvSetPayment('credito')">💳 Crédito</button>
+              <button type="button" class="pay-btn" data-val="debito" onclick="pdvSetPayment('debito')">💳 Débito</button>
+            </div>
+
+            <div style="margin-top:14px"><label>Cliente (opcional)</label><input id="pdv_customer" placeholder="Nome do cliente"></div>
+            <div style="margin-top:10px"><label>Observação (opcional)</label><textarea id="pdv_note" rows="2"></textarea></div>
+
+            <div class="btn-row" style="margin-top:14px">
+              <button class="btn btn-primary" type="button" onclick="pdvFinalizeSale()">Finalizar venda</button>
+              <button class="btn btn-outline" type="button" onclick="pdvResetCart()">Limpar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Vendas do PDV</h3>
+        <p class="hint">Histórico das vendas lançadas manualmente. Cancelar devolve o estoque dos itens.</p>
+        <div style="overflow-x:auto"><table id="pdvSalesTable"><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
     </div>
   </section>
 
@@ -266,14 +351,14 @@ const MENUS = {
   master: [
     ['overview','Visão geral'], ['produtos','Produtos'], ['categorias','Categorias'],
     ['banners','Banners'], ['links','Links & redes'], ['config','Configurações'],
-    ['pedidos','Pedidos'], ['usuarios','Usuários'], ['conta','Minha conta']
+    ['vendas','Vendas'], ['usuarios','Usuários'], ['conta','Minha conta']
   ],
   loja: [
     ['overview','Visão geral'], ['produtos','Produtos & estoque'],
-    ['links','Links & redes'], ['config','Configurações'], ['pedidos','Pedidos'], ['conta','Minha conta']
+    ['links','Links & redes'], ['config','Configurações'], ['vendas','Vendas'], ['conta','Minha conta']
   ]
 };
-const TITLES = {overview:'Visão geral', produtos:'Produtos', categorias:'Categorias', banners:'Banners', links:'Links & redes sociais', config:'Configurações do site', pedidos:'Pedidos / solicitações', usuarios:'Usuários & permissões', conta:'Minha conta'};
+const TITLES = {overview:'Visão geral', produtos:'Produtos', categorias:'Categorias', banners:'Banners', links:'Links & redes sociais', config:'Configurações do site', vendas:'Vendas — Pedidos & PDV', usuarios:'Usuários & permissões', conta:'Minha conta'};
 
 function buildMenu(){
   const items = MENUS[ME.role] || MENUS.loja;
@@ -290,7 +375,7 @@ function showPanel(key){
   if(key==='banners') loadBanners();
   if(key==='links') loadLinks();
   if(key==='config') loadSettings();
-  if(key==='pedidos') loadOrders();
+  if(key==='vendas'){ loadOrders(); loadPDV(); }
   if(key==='usuarios') loadUsers();
   if(key==='overview') loadOverview();
 }
@@ -594,14 +679,15 @@ const SETTING_LABELS = {
   hero_tagline:'Frase abaixo da logo no banner principal',
   whatsapp_number:'WhatsApp para atendimento (com DDI+DDD, ex: 5511999999999)',
   whatsapp_message_padrao:'Mensagem padrão do botão flutuante de WhatsApp',
-  primary_color:'Cor principal (texto/botões)', accent_color:'Cor de destaque (trigo)',
+  primary_color:'Cor principal (texto/botões escuros)', accent_color:'Cor de destaque (trigo)',
   secondary_color:'Cor de apoio (trigo claro)',
   background_color:'Cor de fundo',
+  cta_color:'Cor dos botões de ação (vermelho)',
   meta_description:'Descrição para o Google (SEO)', horario_atendimento:'Horário de atendimento', endereco_atendimento:'Endereço (opcional)'
 };
 // Chaves grandes (base64 de imagem) que têm interface própria — não aparecem aqui
 const SETTING_HIDE_KEYS = ['logo_url','logo_white','logo_mark','logo_color','hero_eyebrow','hero_text_style','hero_text'];
-const COLOR_KEYS = ['primary_color','accent_color','secondary_color','background_color'];
+const COLOR_KEYS = ['primary_color','accent_color','secondary_color','background_color','cta_color'];
 async function loadSettings(){
   const { data, error } = await sb.from('site_settings').select('*').order('key');
   const form = document.getElementById('settingsForm');
@@ -622,6 +708,7 @@ async function loadSettings(){
   }).join('') + `<div><button class="btn btn-primary" type="button" onclick="saveSettings()">Salvar configurações</button></div>`;
   document.getElementById('settingsLockNote').style.display = anyLocked ? 'block' : 'none';
   loadLogos();
+  loadColorHistory();
 }
 
 /* LOGOS (header/footer) */
@@ -652,41 +739,266 @@ async function saveLogos(){
 async function saveSettings(){
   const inputs = document.querySelectorAll('#settingsForm [data-key]');
   try{
+    // snapshota a combinação de cores atual no histórico, se alguma cor for alterada
+    const { data: currentColors } = await sb.from('site_settings').select('key,value').in('key', COLOR_KEYS);
+    const currentMap = {}; (currentColors||[]).forEach(r => currentMap[r.key] = r.value);
+    let colorChanged = false;
+    inputs.forEach(inp => {
+      if(COLOR_KEYS.includes(inp.dataset.key) && currentMap[inp.dataset.key] !== inp.value) colorChanged = true;
+    });
+    if(colorChanged){
+      await sb.from('theme_color_history').insert({ colors: currentMap, changed_by: ME.id });
+    }
     for(const inp of inputs){
       if(inp.disabled) continue;
       const { error } = await sb.from('site_settings').update({ value: inp.value }).eq('key', inp.dataset.key);
       if(error) throw error;
     }
     toast('Configurações atualizadas!');
+    if(colorChanged) loadColorHistory();
+  }catch(err){ toast('Erro: ' + err.message); }
+}
+
+/* HISTÓRICO DE CORES */
+async function loadColorHistory(){
+  const el = document.getElementById('colorHistoryList');
+  if(!el) return;
+  const { data, error } = await sb.from('theme_color_history').select('*').order('changed_at', {ascending:false}).limit(10);
+  if(error){ el.innerHTML = `<p class="empty">Erro: ${error.message}</p>`; return; }
+  if(!data.length){ el.innerHTML = '<p class="empty">Nenhuma alteração de cor registrada ainda.</p>'; return; }
+  el.innerHTML = data.map(h => {
+    const swatches = COLOR_KEYS.map(k => h.colors[k] ? `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:${h.colors[k]};border:1px solid rgba(0,0,0,.1);margin-right:4px" title="${SETTING_LABELS[k]||k}"></span>` : '').join('');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:.5px solid var(--line);flex-wrap:wrap">
+      <div>${swatches}<span class="hint" style="margin-left:8px">${new Date(h.changed_at).toLocaleString('pt-BR')}</span></div>
+      <button class="btn btn-outline btn-sm" type="button" onclick='restoreColorSnapshot(${JSON.stringify(h.colors).replace(/'/g,"&#39;")})'>Restaurar</button>
+    </div>`;
+  }).join('');
+}
+async function restoreColorSnapshot(colors){
+  if(!confirm('Restaurar esta combinação de cores? A combinação atual será salva no histórico antes.')) return;
+  try{
+    const { data: currentColors } = await sb.from('site_settings').select('key,value').in('key', COLOR_KEYS);
+    const currentMap = {}; (currentColors||[]).forEach(r => currentMap[r.key] = r.value);
+    await sb.from('theme_color_history').insert({ colors: currentMap, changed_by: ME.id });
+    for(const key of COLOR_KEYS){
+      if(colors[key]) await sb.from('site_settings').update({ value: colors[key] }).eq('key', key);
+    }
+    toast('Cores restauradas!');
+    loadSettings();
   }catch(err){ toast('Erro: ' + err.message); }
 }
 
 /* PEDIDOS */
 const ORDER_STATUS = ['novo','em preparo','pronto','entregue','cancelado'];
 async function loadOrders(){
-  const { data, error } = await sb.from('orders').select('*').order('created_at', {ascending:false}).limit(100);
+  const [{ data, error }, { data: prods }] = await Promise.all([
+    sb.from('orders').select('*').order('created_at', {ascending:false}).limit(100),
+    sb.from('products').select('id,stock,available')
+  ]);
   const tbody = document.querySelector('#ordersTable tbody');
-  if(error){ tbody.innerHTML = `<tr><td colspan="6" class="empty">Erro: ${error.message}</td></tr>`; return; }
-  if(!data.length){ tbody.innerHTML = `<tr><td colspan="6" class="empty">Nenhum pedido recebido ainda.</td></tr>`; return; }
-  tbody.innerHTML = data.map(o => `
-    <tr>
+  const banner = document.getElementById('newOrdersBanner');
+  if(error){ tbody.innerHTML = `<tr><td colspan="8" class="empty">Erro: ${error.message}</td></tr>`; banner.style.display='none'; return; }
+  if(!data.length){ tbody.innerHTML = `<tr><td colspan="8" class="empty">Nenhum pedido recebido ainda.</td></tr>`; banner.style.display='none'; return; }
+
+  const prodMap = {}; (prods||[]).forEach(p => prodMap[p.id] = p);
+  const newCount = data.filter(o => o.status === 'novo').length;
+  if(newCount > 0){
+    banner.style.display = 'block';
+    banner.innerHTML = `<span class="new-dot" style="vertical-align:middle;margin-right:8px;"></span>${newCount} pedido${newCount>1?'s':''} novo${newCount>1?'s':''} aguardando atendimento`;
+  } else { banner.style.display = 'none'; }
+
+  tbody.innerHTML = data.map(o => {
+    const isNew = o.status === 'novo';
+    let hasReady = false, hasOrder = false, hasUnknown = false;
+    (o.items||[]).forEach(i => {
+      const p = prodMap[i.id];
+      if(!p){ hasUnknown = true; return; }
+      if(p.stock > 0) hasReady = true;
+      else if(p.available) hasOrder = true;
+      else hasUnknown = true;
+    });
+    let typeHtml = '';
+    if(hasReady) typeHtml += '<span class="type-pill ready">Pronta Entrega</span>';
+    if(hasOrder) typeHtml += '<span class="type-pill order">Sob Encomenda</span>';
+    if(hasUnknown && !hasReady && !hasOrder) typeHtml += '<span class="type-pill unknown">—</span>';
+    return `
+    <tr class="${isNew ? 'order-new' : ''}">
+      <td>${isNew ? '<span class="new-dot" title="Pedido novo"></span>' : ''}</td>
       <td>${new Date(o.created_at).toLocaleString('pt-BR')}</td>
       <td>${o.customer_name || '—'}<br><span class="hint">${o.customer_phone||''}</span></td>
       <td>${(o.items||[]).map(i=>`${i.qty}x ${i.name}`).join('<br>')}</td>
+      <td>${typeHtml}</td>
       <td>${o.general_note || '—'}</td>
       <td><select onchange="updateOrderStatus('${o.id}', this.value)">${ORDER_STATUS.map(s => `<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
       <td>${ME.role==='master' ? `<button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.id}')">Excluir</button>` : ''}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 async function updateOrderStatus(id, status){
   const { error } = await sb.from('orders').update({status}).eq('id', id);
-  if(error) toast('Erro: ' + error.message); else toast('Status atualizado.');
+  if(error) toast('Erro: ' + error.message); else { toast('Status atualizado.'); loadOrders(); }
 }
 async function deleteOrder(id){
   if(!confirm('Excluir este pedido do histórico?')) return;
   const { error } = await sb.from('orders').delete().eq('id', id);
   if(error){ toast('Erro: '+error.message); return; }
   toast('Pedido excluído.'); loadOrders();
+}
+
+/* VENDAS — abas Pedidos / PDV */
+function switchSalesTab(tab){
+  document.getElementById('salesTabPedidos').style.display = tab==='pedidos' ? 'block' : 'none';
+  document.getElementById('salesTabPdv').style.display = tab==='pdv' ? 'block' : 'none';
+  document.getElementById('tabBtnPedidos').classList.toggle('active', tab==='pedidos');
+  document.getElementById('tabBtnPdv').classList.toggle('active', tab==='pdv');
+}
+
+/* PDV — VENDAS MANUAIS (estilo caixa: categoria -> produtos em quadradinhos) */
+let pdvCart = [];
+let pdvPayment = null;
+let PDV_PRODUCTS = [];
+let PDV_CATEGORIES = [];
+let pdvActiveCat = null;
+const PAY_LABELS = {dinheiro:'Dinheiro', pix:'PIX', credito:'Crédito (POS)', debito:'Débito (POS)'};
+const PDV_EMOJIS = ['🍞','🥐','🍰','🧁','🍬','🥖','🍪'];
+function pdvEmoji(seed){
+  let h = 0; for(const c of (seed||'')) h = (h*31 + c.charCodeAt(0))|0;
+  return PDV_EMOJIS[Math.abs(h) % PDV_EMOJIS.length];
+}
+
+async function loadPDV(){
+  const [{ data: cats }, { data: prods, error }] = await Promise.all([
+    sb.from('categories').select('id,name,slug').eq('active', true).order('sort_order'),
+    sb.from('products').select('id,name,price,stock,available,image_url,category_id').eq('active', true).order('name')
+  ]);
+  PDV_CATEGORIES = cats || [];
+  PDV_PRODUCTS = error ? [] : (prods || []);
+  pdvCart = []; pdvPayment = null;
+  document.getElementById('pdv_customer').value = '';
+  document.getElementById('pdv_note').value = '';
+  document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('active'));
+  renderPdvCart();
+  renderPdvCategories();
+  if(PDV_CATEGORIES.length) pdvSelectCategory(PDV_CATEGORIES[0].id);
+  else document.getElementById('posProdGrid').innerHTML = '<p class="empty">Cadastre categorias e produtos primeiro.</p>';
+  loadPdvSales();
+}
+function renderPdvCategories(){
+  const row = document.getElementById('posCatRow');
+  row.innerHTML = PDV_CATEGORIES.map(c => `<button type="button" class="pos-cat-tile ${c.id===pdvActiveCat?'active':''}" onclick="pdvSelectCategory('${c.id}')">${c.name}</button>`).join('');
+}
+function pdvSelectCategory(catId){
+  pdvActiveCat = catId;
+  document.querySelectorAll('.pos-cat-tile').forEach(b => b.classList.remove('active'));
+  renderPdvCategories();
+  const items = PDV_PRODUCTS.filter(p => p.category_id === catId);
+  const grid = document.getElementById('posProdGrid');
+  grid.innerHTML = items.length ? items.map(p => `
+    <div class="pos-prod-tile" onclick="pdvAddItem('${p.id}')">
+      <div class="thumb">${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : pdvEmoji(p.name)}</div>
+      <div class="pinfo"><b>${p.name}</b><span>${money(p.price)}</span></div>
+    </div>`).join('') : '<p class="empty">Nenhum produto nesta categoria.</p>';
+}
+function pdvAddItem(id){
+  const p = PDV_PRODUCTS.find(x => x.id === id);
+  if(!p) return;
+  const existing = pdvCart.find(i => i.id === id);
+  if(existing) existing.qty += 1;
+  else pdvCart.push({ id: p.id, name: p.name, price: p.price, qty: 1 });
+  renderPdvCart();
+}
+function pdvChangeQty(id, delta){
+  const item = pdvCart.find(i => i.id === id);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty <= 0) pdvCart = pdvCart.filter(i => i.id !== id);
+  renderPdvCart();
+}
+function pdvRemoveItem(id){ pdvCart = pdvCart.filter(i => i.id !== id); renderPdvCart(); }
+function renderPdvCart(){
+  const list = document.getElementById('pdvCartList');
+  const empty = document.getElementById('pdvCartEmpty');
+  if(!pdvCart.length){
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    document.getElementById('pdvTotal').textContent = money(0);
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = pdvCart.map(i => `
+    <div class="pdv-item-row">
+      <span>${i.qty}x ${i.name}</span>
+      <span class="pdv-item-controls">
+        <b>${money(i.price * i.qty)}</b>
+        <button class="btn btn-outline btn-sm" type="button" onclick="pdvChangeQty('${i.id}',-1)">−</button>
+        <button class="btn btn-outline btn-sm" type="button" onclick="pdvChangeQty('${i.id}',1)">+</button>
+        <button class="btn btn-danger btn-sm" type="button" onclick="pdvRemoveItem('${i.id}')">remover</button>
+      </span>
+    </div>`).join('');
+  const total = pdvCart.reduce((s,i) => s + i.price * i.qty, 0);
+  document.getElementById('pdvTotal').textContent = money(total);
+}
+function pdvSetPayment(val){
+  pdvPayment = val;
+  document.querySelectorAll('.pay-btn').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+}
+function pdvResetCart(){
+  pdvCart = []; pdvPayment = null;
+  document.getElementById('pdv_customer').value = '';
+  document.getElementById('pdv_note').value = '';
+  document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('active'));
+  renderPdvCart();
+}
+async function pdvFinalizeSale(){
+  if(!pdvCart.length){ toast('Adicione ao menos um item.'); return; }
+  if(!pdvPayment){ toast('Selecione a forma de pagamento.'); return; }
+  const total = pdvCart.reduce((s,i) => s + i.price * i.qty, 0);
+  const payload = {
+    customer_name: document.getElementById('pdv_customer').value.trim() || null,
+    items: pdvCart.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
+    payment_method: pdvPayment,
+    total,
+    note: document.getElementById('pdv_note').value.trim() || null,
+    status: 'finalizada',
+    created_by: ME.id
+  };
+  const { error } = await sb.from('pdv_sales').insert(payload);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Venda registrada — estoque atualizado!');
+  pdvResetCart();
+  loadPDV();
+}
+async function loadPdvSales(){
+  const { data, error } = await sb.from('pdv_sales').select('*').order('created_at', {ascending:false}).limit(100);
+  const tbody = document.querySelector('#pdvSalesTable tbody');
+  if(error){ tbody.innerHTML = `<tr><td colspan="7" class="empty">Erro: ${error.message}</td></tr>`; return; }
+  if(!data.length){ tbody.innerHTML = `<tr><td colspan="7" class="empty">Nenhuma venda lançada ainda.</td></tr>`; return; }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td>${new Date(s.created_at).toLocaleString('pt-BR')}</td>
+      <td>${s.customer_name || '—'}</td>
+      <td>${(s.items||[]).map(i=>`${i.qty}x ${i.name}`).join('<br>')}</td>
+      <td>${PAY_LABELS[s.payment_method] || s.payment_method}</td>
+      <td>${money(s.total)}</td>
+      <td><span class="pill ${s.status==='finalizada' ? 'on' : 'off'}">${s.status}</span></td>
+      <td>${s.status==='finalizada'
+        ? `<button class="btn btn-danger btn-sm" onclick="pdvCancelSale('${s.id}')">Cancelar</button>`
+        : (ME.role==='master' ? `<button class="btn btn-danger btn-sm" onclick="pdvDeleteSale('${s.id}')">Excluir</button>` : '')}</td>
+    </tr>`).join('');
+}
+async function pdvCancelSale(id){
+  if(!confirm('Cancelar esta venda? O estoque dos itens será devolvido.')) return;
+  const { error } = await sb.from('pdv_sales').update({status:'cancelada'}).eq('id', id);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Venda cancelada — estoque devolvido.');
+  loadPdvSales();
+}
+async function pdvDeleteSale(id){
+  if(!confirm('Excluir definitivamente esta venda do histórico?')) return;
+  const { error } = await sb.from('pdv_sales').delete().eq('id', id);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Venda excluída.');
+  loadPdvSales();
 }
 
 /* USUÁRIOS */
