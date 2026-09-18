@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --bg:#FDFBF7; --bg-alt:#F5F0E8; --cocoa:#2D241E; --cocoa-muted:#6B5D52;
@@ -73,6 +74,9 @@
   .sales-tabs{display:flex;gap:8px;margin-bottom:18px;}
   .sales-tab{padding:10px 20px;border-radius:10px;border:1.5px solid var(--line-strong);background:#fff;font-weight:600;font-size:.86rem;cursor:pointer;color:var(--cocoa-muted);}
   .sales-tab.active{background:var(--cocoa);color:#fff;border-color:var(--cocoa);}
+  .date-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .date-filter-btn{padding:7px 14px;border-radius:999px;border:1.5px solid var(--line-strong);background:#fff;font-weight:600;font-size:.78rem;cursor:pointer;color:var(--cocoa-muted);}
+  .date-filter-btn.active{background:var(--order);color:#fff;border-color:var(--order);}
   .pos-layout{display:grid;grid-template-columns:1.6fr 1fr;gap:22px;align-items:start;}
   .pos-cat-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
   .pos-cat-tile{padding:12px 18px;border-radius:10px;border:1.5px solid var(--line-strong);background:#fff;font-weight:600;font-size:.82rem;cursor:pointer;color:var(--cocoa);}
@@ -153,7 +157,10 @@
 <main>
   <div class="topbar">
     <h1 id="pageTitle">Visão geral</h1>
-    <a class="view-site" href="../index.html" target="_blank">Ver site público ↗</a>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" id="pdfMenuBtn" onclick="downloadMenuPDF()">📄 Baixar cardápio em PDF</button>
+      <a class="view-site" href="../index.html" target="_blank">Ver site público ↗</a>
+    </div>
   </div>
 
   <section class="panel active" id="panel-overview">
@@ -256,6 +263,13 @@
         <h3>Pedidos / solicitações</h3>
         <p class="hint">Registro dos pedidos enviados pelo "Monte seu pedido" no site.</p>
         <div id="newOrdersBanner" style="display:none;margin-bottom:14px;padding:12px 16px;background:rgba(192,67,62,.08);border:1px solid rgba(192,67,62,.25);border-radius:10px;font-size:.86rem;font-weight:600;color:#B0233F;"></div>
+        <div class="date-filters" id="ordersDateFilter">
+          <button class="date-filter-btn active" data-range="all" onclick="setOrdersRange('all')">Todas</button>
+          <button class="date-filter-btn" data-range="today" onclick="setOrdersRange('today')">Hoje</button>
+          <button class="date-filter-btn" data-range="week" onclick="setOrdersRange('week')">Esta semana</button>
+          <button class="date-filter-btn" data-range="month" onclick="setOrdersRange('month')">Este mês</button>
+          <button class="date-filter-btn" data-range="lastmonth" onclick="setOrdersRange('lastmonth')">Mês passado</button>
+        </div>
         <div style="overflow-x:auto"><table id="ordersTable"><thead><tr><th></th><th>Data</th><th>Cliente</th><th>Itens</th><th>Tipo</th><th>Observação</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
     </div>
@@ -297,21 +311,34 @@
       <div class="card">
         <h3>Vendas do PDV</h3>
         <p class="hint">Histórico das vendas lançadas manualmente. Cancelar devolve o estoque dos itens.</p>
+        <div class="date-filters" id="pdvDateFilter">
+          <button class="date-filter-btn active" data-range="all" onclick="setPdvRange('all')">Todas</button>
+          <button class="date-filter-btn" data-range="today" onclick="setPdvRange('today')">Hoje</button>
+          <button class="date-filter-btn" data-range="week" onclick="setPdvRange('week')">Esta semana</button>
+          <button class="date-filter-btn" data-range="month" onclick="setPdvRange('month')">Este mês</button>
+          <button class="date-filter-btn" data-range="lastmonth" onclick="setPdvRange('lastmonth')">Mês passado</button>
+        </div>
         <div style="overflow-x:auto"><table id="pdvSalesTable"><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
     </div>
   </section>
 
   <section class="panel" id="panel-usuarios">
+    <div class="card" id="newUserCard" style="max-width:460px">
+      <h3>Novo usuário</h3>
+      <p class="hint">Cria um login novo direto por aqui — sem precisar entrar no Supabase. Depois de criar, defina as permissões dele no botão "Permissões" da lista abaixo.</p>
+      <form class="stack" id="newUserForm">
+        <div><label>Nome completo</label><input id="nu_name" placeholder="Ex: Francisco Silva" required></div>
+        <div><label>Usuário (para login)</label><input id="nu_username" placeholder="ex: francisco" required></div>
+        <div><label>E-mail</label><input type="email" id="nu_email" placeholder="email@exemplo.com" required></div>
+        <div><label>Senha</label><input type="password" id="nu_password" placeholder="mínimo 6 caracteres" required></div>
+        <button class="btn btn-primary" type="submit">Criar usuário</button>
+      </form>
+    </div>
     <div class="card">
       <h3>Usuários & permissões</h3>
-      <p class="hint">Edite o papel (função) e o nome de usuário de cada login existente.</p>
+      <p class="hint">Edite o papel (função), o nome de usuário e as permissões de cada login existente.</p>
       <div style="overflow-x:auto"><table id="usersTable"><thead><tr><th>Nome</th><th>Usuário</th><th>E-mail</th><th>Papel</th><th></th></tr></thead><tbody></tbody></table></div>
-      <div class="locked-note">
-        Para <b>criar um novo login</b> (novo e-mail/senha), cadastre em
-        <a href="https://supabase.com/dashboard/project/muyafaecbftctxvwxpyy/auth/users" target="_blank">Supabase → Authentication → Users</a>.
-        Assim que o usuário existir, ele aparece automaticamente aqui para você definir o usuário e o papel (master ou loja).
-      </div>
     </div>
   </section>
 
@@ -354,6 +381,157 @@ function toast(msg){
 function money(v){ return (Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
 
 async function doLogout(){ await sb.auth.signOut(); window.location.href = 'login.html'; }
+
+/* GERAÇÃO DO CARDÁPIO EM PDF (sempre busca dados novos do banco, na hora do clique) */
+function loadImageAsDataURL(url){
+  return new Promise((resolve, reject) => {
+    fetch(url).then(r => { if(!r.ok) throw new Error('fetch falhou'); return r.blob(); }).then(blob => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    }).catch(reject);
+  });
+}
+function hexToRgbArr(hex){
+  try{
+    const c = (hex||'').replace('#','');
+    const full = c.length===3 ? c.split('').map(x=>x+x).join('') : c;
+    const num = parseInt(full, 16);
+    return [(num>>16)&255, (num>>8)&255, num&255];
+  }catch(e){ return [179,64,42]; }
+}
+
+async function downloadMenuPDF(){
+  const btn = document.getElementById('pdfMenuBtn');
+  const originalLabel = btn.textContent;
+  btn.textContent = 'Gerando...';
+  btn.disabled = true;
+  try{
+    const [{ data: settingsRows }, { data: cats }, { data: prods }] = await Promise.all([
+      sb.from('site_settings').select('key,value'),
+      sb.from('categories').select('*').eq('active', true).eq('show_on_site', true).order('sort_order'),
+      sb.from('products').select('*').eq('active', true).eq('show_on_site', true).order('sort_order')
+    ]);
+    const SET = {}; (settingsRows||[]).forEach(r => SET[r.key] = r.value);
+    const CATS = cats || [];
+    const PRODS = prods || [];
+    if(!CATS.length || !PRODS.length){
+      toast('Não há produtos exibidos no site para gerar o cardápio.');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageW = 210, pageH = 297;
+    const redRgb = hexToRgbArr(SET.cta_color || '#B3402A');
+    const logoSrc = SET.logo_white || '../assets/logo-white.png';
+    let logoData = null, logoAspect = null;
+    try{
+      logoData = await loadImageAsDataURL(logoSrc);
+      const img = new Image();
+      await new Promise((res) => { img.onload = res; img.onerror = res; img.src = logoData; });
+      if(img.width) logoAspect = img.height / img.width;
+    }catch(e){ logoData = null; }
+
+    const marginX = 14;
+    const colGap = 10;
+    const colW = (pageW - marginX*2 - colGap) / 2;
+    const col1X = marginX, col2X = marginX + colW + colGap;
+    let col = 0, y = 0, page = 1, headerH = 45;
+
+    function paintBg(){
+      doc.setFillColor(redRgb[0], redRgb[1], redRgb[2]);
+      doc.rect(0, 0, pageW, pageH, 'F');
+    }
+    function drawHeader(){
+      paintBg();
+      let cursorY = 14;
+      if(logoData){
+        const logoW = 42;
+        const logoH = logoAspect ? logoAspect * logoW : logoW * 0.6;
+        try{ doc.addImage(logoData, 'PNG', (pageW - logoW)/2, cursorY, logoW, logoH); }catch(e){}
+        cursorY += logoH + 6;
+      } else {
+        cursorY += 4;
+      }
+      doc.setTextColor(255,255,255);
+      doc.setFont('helvetica','italic');
+      doc.setFontSize(11);
+      doc.text(SET.hero_tagline || 'Confeitaria Artesanal', pageW/2, cursorY, {align:'center'});
+      cursorY += 4;
+      doc.setDrawColor(255,255,255);
+      doc.setLineWidth(0.2);
+      doc.line(pageW/2 - 25, cursorY, pageW/2 + 25, cursorY);
+      headerH = cursorY + 10;
+      col = 0; y = headerH;
+    }
+    function footerPage(pageNum, pageTotal){
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(255,255,255);
+      const contact = [SET.whatsapp_number ? 'WhatsApp: ' + SET.whatsapp_number : '', SET.horario_atendimento || ''].filter(Boolean).join('   ·   ');
+      if(contact) doc.text(contact, pageW/2, pageH - 10, {align:'center'});
+      doc.text(`${pageNum}/${pageTotal}`, pageW - marginX, pageH - 10, {align:'right'});
+    }
+    function nextColumn(){
+      col++;
+      if(col > 1){ col = 0; doc.addPage(); page++; drawHeader(); }
+      else { y = headerH; }
+    }
+    function ensureSpace(needed){
+      const colBottom = pageH - 16;
+      if(y + needed > colBottom) nextColumn();
+    }
+    function curX(){ return col === 0 ? col1X : col2X; }
+
+    drawHeader();
+
+    CATS.forEach(cat => {
+      const items = PRODS.filter(p => p.category_id === cat.id);
+      if(!items.length) return;
+      ensureSpace(11);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(11);
+      doc.setTextColor(255,255,255);
+      doc.text((cat.name||'').toUpperCase(), curX(), y);
+      doc.setDrawColor(255,255,255);
+      doc.setLineWidth(0.15);
+      doc.line(curX(), y + 1.8, curX() + colW, y + 1.8);
+      y += 7;
+
+      items.forEach(p => {
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(8.5);
+        const nameLines = doc.splitTextToSize(p.name || '', colW - 22);
+        const lineH = 4;
+        const blockH = nameLines.length * lineH + 2.5;
+        ensureSpace(blockH);
+        doc.setTextColor(255,255,255);
+        doc.text(nameLines, curX(), y);
+        doc.setFont('helvetica','bold');
+        doc.text(money(p.price), curX() + colW, y, {align:'right'});
+        y += blockH;
+      });
+      y += 4;
+    });
+
+    const totalPages = page;
+    for(let i=1;i<=totalPages;i++){
+      doc.setPage(i);
+      footerPage(i, totalPages);
+    }
+
+    doc.save(`cardapio-${(SET.site_name||'tati-oyama').toLowerCase().replace(/\s+/g,'-')}.pdf`);
+    toast('Cardápio gerado!');
+  }catch(err){
+    console.error(err);
+    toast('Não foi possível gerar o PDF: ' + (err.message || err));
+  }finally{
+    btn.textContent = originalLabel;
+    btn.disabled = false;
+  }
+}
 
 /* PERMISSÕES — master sempre tem tudo; demais seguem a linha de user_permissions */
 function canModule(mod, lvl){
@@ -862,17 +1040,46 @@ async function restoreColorSnapshot(colors){
   }catch(err){ toast('Erro: ' + err.message); }
 }
 
+/* FILTROS DE PERÍODO (compartilhado entre Pedidos e PDV) */
+function getRangeBounds(range){
+  const now = new Date();
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if(range === 'today') return { from: startOfDay(now), to: null };
+  if(range === 'week'){
+    const day = now.getDay();
+    const diffToMonday = (day === 0 ? 6 : day - 1);
+    const monday = startOfDay(now);
+    monday.setDate(monday.getDate() - diffToMonday);
+    return { from: monday, to: null };
+  }
+  if(range === 'month') return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: null };
+  if(range === 'lastmonth'){
+    return { from: new Date(now.getFullYear(), now.getMonth()-1, 1), to: new Date(now.getFullYear(), now.getMonth(), 1) };
+  }
+  return { from: null, to: null };
+}
+
 /* PEDIDOS */
 const ORDER_STATUS = ['novo','em preparo','pronto','entregue','cancelado'];
+let ordersRange = 'all';
+function setOrdersRange(range){
+  ordersRange = range;
+  document.querySelectorAll('#ordersDateFilter .date-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.range===range));
+  loadOrders();
+}
 async function loadOrders(){
+  let ordersQuery = sb.from('orders').select('*').order('created_at', {ascending:false}).limit(200);
+  const { from, to } = getRangeBounds(ordersRange);
+  if(from) ordersQuery = ordersQuery.gte('created_at', from.toISOString());
+  if(to) ordersQuery = ordersQuery.lt('created_at', to.toISOString());
   const [{ data, error }, { data: prods }] = await Promise.all([
-    sb.from('orders').select('*').order('created_at', {ascending:false}).limit(100),
+    ordersQuery,
     sb.from('products').select('id,stock,available')
   ]);
   const tbody = document.querySelector('#ordersTable tbody');
   const banner = document.getElementById('newOrdersBanner');
   if(error){ tbody.innerHTML = `<tr><td colspan="8" class="empty">Erro: ${error.message}</td></tr>`; banner.style.display='none'; return; }
-  if(!data.length){ tbody.innerHTML = `<tr><td colspan="8" class="empty">Nenhum pedido recebido ainda.</td></tr>`; banner.style.display='none'; return; }
+  if(!data.length){ tbody.innerHTML = `<tr><td colspan="8" class="empty">${ordersRange==='all' ? 'Nenhum pedido recebido ainda.' : 'Nenhum pedido neste período.'}</td></tr>`; banner.style.display='none'; return; }
 
   const prodMap = {}; (prods||[]).forEach(p => prodMap[p.id] = p);
   const newCount = data.filter(o => o.status === 'novo').length;
@@ -1042,11 +1249,21 @@ async function pdvFinalizeSale(){
   pdvResetCart();
   loadPDV();
 }
+let pdvRange = 'all';
+function setPdvRange(range){
+  pdvRange = range;
+  document.querySelectorAll('#pdvDateFilter .date-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.range===range));
+  loadPdvSales();
+}
 async function loadPdvSales(){
-  const { data, error } = await sb.from('pdv_sales').select('*').order('created_at', {ascending:false}).limit(100);
+  let pdvQuery = sb.from('pdv_sales').select('*').order('created_at', {ascending:false}).limit(200);
+  const { from, to } = getRangeBounds(pdvRange);
+  if(from) pdvQuery = pdvQuery.gte('created_at', from.toISOString());
+  if(to) pdvQuery = pdvQuery.lt('created_at', to.toISOString());
+  const { data, error } = await pdvQuery;
   const tbody = document.querySelector('#pdvSalesTable tbody');
   if(error){ tbody.innerHTML = `<tr><td colspan="7" class="empty">Erro: ${error.message}</td></tr>`; return; }
-  if(!data.length){ tbody.innerHTML = `<tr><td colspan="7" class="empty">Nenhuma venda lançada ainda.</td></tr>`; return; }
+  if(!data.length){ tbody.innerHTML = `<tr><td colspan="7" class="empty">${pdvRange==='all' ? 'Nenhuma venda lançada ainda.' : 'Nenhuma venda neste período.'}</td></tr>`; return; }
   tbody.innerHTML = data.map(s => `
     <tr>
       <td>${new Date(s.created_at).toLocaleString('pt-BR')}</td>
@@ -1077,6 +1294,7 @@ async function pdvDeleteSale(id){
 
 /* USUÁRIOS */
 async function loadUsers(){
+  document.getElementById('newUserCard').style.display = ME.role === 'master' ? '' : 'none';
   const { data, error } = await sb.from('profiles').select('*').order('role');
   const tbody = document.querySelector('#usersTable tbody');
   if(error){ tbody.innerHTML = `<tr><td colspan="5" class="empty">Erro: ${error.message}</td></tr>`; return; }
@@ -1150,6 +1368,31 @@ async function openPermissionsModal(userId, userName){
 }
 
 /* MINHA CONTA */
+document.getElementById('newUserForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  const payload = {
+    full_name: document.getElementById('nu_name').value.trim(),
+    username: document.getElementById('nu_username').value.trim(),
+    email: document.getElementById('nu_email').value.trim(),
+    password: document.getElementById('nu_password').value
+  };
+  if(!payload.full_name || !payload.username || !payload.email || !payload.password){ toast('Preencha todos os campos.'); return; }
+  btn.disabled = true; btn.textContent = 'Criando...';
+  try{
+    const { data, error } = await sb.functions.invoke('admin-create-user', { body: payload });
+    if(error) throw error;
+    if(data && data.ok === false) throw new Error(data.error || 'Erro ao criar usuário.');
+    toast('Usuário criado! Agora defina as permissões dele na lista abaixo.');
+    e.target.reset();
+    loadUsers();
+  }catch(err){
+    toast('Erro: ' + (err.message || err));
+  }finally{
+    btn.disabled = false; btn.textContent = 'Criar usuário';
+  }
+});
+
 document.getElementById('accountForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('newEmail').value.trim();
