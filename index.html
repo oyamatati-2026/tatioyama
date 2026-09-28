@@ -161,14 +161,15 @@
   .cat-section h3.serif{color:var(--cocoa);font-size:1.6rem;margin-bottom:1.5rem;font-weight:500;}
 
   /* fermentação natural banner */
-  .ferment-banner{display:flex;gap:1.4rem;align-items:flex-start;background:var(--bg-alt);border-radius:var(--radius);padding:1.8rem 2rem;margin-top:2.2rem;border:1px solid var(--line);}
-  .ferment-icon{font-size:2.2rem;flex-shrink:0;line-height:1;}
-  .ferment-banner h4{font-family:var(--serif);font-size:1.4rem;font-weight:500;margin-bottom:.5rem;color:var(--cocoa);}
-  .ferment-banner p{color:var(--cocoa-muted);font-size:.9rem;font-weight:300;margin-bottom:1rem;max-width:60ch;}
-  .ferment-banner ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1rem;padding:0;}
+  .ferment-banner{position:relative;overflow:hidden;display:flex;gap:1.6rem;align-items:flex-start;background:linear-gradient(135deg,var(--bg-alt),#fff);border-radius:20px;padding:2.2rem 2.4rem 2.2rem 2.6rem;margin-top:2.4rem;border:1px solid var(--line);box-shadow:var(--sombra);}
+  .ferment-banner::before{content:'';position:absolute;top:0;left:0;width:5px;height:100%;background:var(--wheat-gradient);}
+  .ferment-icon{font-size:1.7rem;flex-shrink:0;line-height:1;width:58px;height:58px;border-radius:50%;background:var(--wheat-light);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px -6px rgba(192,138,62,.4);}
+  .ferment-banner h4{font-family:var(--serif);font-size:1.5rem;font-weight:500;margin-bottom:.6rem;color:var(--cocoa);}
+  .ferment-banner p{color:var(--cocoa-muted);font-size:.9rem;font-weight:300;margin-bottom:1.1rem;max-width:60ch;}
+  .ferment-banner ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:.6rem 1rem;padding:0;}
   .ferment-banner li{font-size:.83rem;color:var(--cocoa);font-weight:500;padding-left:1.3rem;position:relative;}
   .ferment-banner li::before{content:'✓';position:absolute;left:0;color:var(--order);font-weight:700;}
-  @media(max-width:640px){.ferment-banner{flex-direction:column;} .ferment-banner ul{grid-template-columns:1fr;}}
+  @media(max-width:640px){.ferment-banner{flex-direction:column;padding:1.8rem;} .ferment-banner ul{grid-template-columns:1fr;}}
 
   /* about / intro */
   .intro{padding:6rem 0;}
@@ -220,9 +221,10 @@
 
   /* social */
   .social-grid{display:grid;grid-template-columns:1fr;gap:2rem;align-items:start;max-width:480px;margin:0 auto;}
-  .social-card{background:var(--bg-alt);border-radius:var(--radius);padding:2.4rem 2rem;text-align:center;}
-  .social-card h3{font-size:1.5rem;margin-bottom:.5rem;}
-  .social-card p{color:var(--cocoa-muted);font-size:.92rem;font-weight:300;margin-bottom:1.4rem;}
+  .social-card{background:var(--bg-alt);border-radius:var(--radius);padding:3rem 2rem;text-align:center;}
+  .social-eyebrow{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.22em;color:var(--cocoa-muted);margin-bottom:.5rem;}
+  .social-title{font-family:var(--sans);font-size:clamp(2.1rem,7vw,3.2rem);font-weight:800;text-transform:uppercase;letter-spacing:.01em;line-height:1;margin-bottom:1.1rem;}
+  .social-card p{color:var(--cocoa-muted);font-size:.92rem;font-weight:300;margin-bottom:1.6rem;}
   .social-embed{margin-top:1.6rem;border-radius:12px;overflow:hidden;max-width:400px;margin-left:auto;margin-right:auto;background:#fff;box-shadow:var(--sombra);}
   @media(max-width:768px){.social-grid{grid-template-columns:1fr;}}
 
@@ -289,18 +291,17 @@
   .drawer-body .field{margin-bottom:16px;}
   .drawer-body .field label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--cocoa-muted);display:block;margin-bottom:7px;}
   .drawer-body .field label .req{color:#B0233F;}
-  .input-icon{display:flex;align-items:center;gap:10px;border-radius:14px;border:1.5px solid var(--line-strong);background:var(--bg-alt);padding:0 14px;transition:all .25s ease;}
+  .input-icon{display:flex;align-items:center;gap:10px;border-radius:16px;border:1px solid transparent;background:var(--bg-alt);padding:2px 14px;transition:all .25s ease;box-shadow:inset 0 0 0 1px rgba(61,43,31,.05);}
   .input-icon.align-top{align-items:flex-start;padding-top:13px;}
-  .input-icon svg{flex-shrink:0;width:16px;height:16px;color:var(--cocoa-muted);}
-  .input-icon:focus-within{border-color:var(--order);background:#fff;box-shadow:0 0 0 4px rgba(192,138,62,.14);}
-  .drawer-body .input-icon input,.drawer-body .input-icon textarea{flex:1;min-width:0;width:auto;padding:13px 0;border:none;background:transparent;font-family:inherit;font-size:.9rem;color:var(--cocoa);}
+  .input-icon svg{flex-shrink:0;width:16px;height:16px;color:var(--cocoa-muted);opacity:.6;}
+  .input-icon:focus-within{border-color:rgba(192,138,62,.45);background:#fff;box-shadow:0 6px 18px -8px rgba(61,43,31,.18),0 0 0 4px rgba(192,138,62,.13);}
+  .input-icon:focus-within svg{opacity:1;color:var(--order);}
+  .drawer-body .input-icon input,.drawer-body .input-icon textarea{flex:1;min-width:0;width:auto;padding:13px 0;border:none;background:transparent;font-family:inherit;font-size:.92rem;color:var(--cocoa);-webkit-appearance:none;appearance:none;box-shadow:none;outline:none;}
+  .drawer-body .input-icon input::placeholder,.drawer-body .input-icon textarea::placeholder{color:var(--cocoa-muted);opacity:.6;}
   .input-icon.align-top textarea{padding-top:0;}
-  .drawer-body input,.drawer-body textarea{border-radius:14px;}
   .drawer-body .input-icon textarea{resize:vertical;}
-  .drawer-body input:focus,.drawer-body textarea:focus{outline:none;}
   .drawer-body .field-error{display:block;min-height:1.1em;color:#B0233F;font-size:.74rem;margin-top:5px;font-weight:500;}
-  .drawer-body input.invalid,.drawer-body textarea.invalid{border-color:#B0233F;background:rgba(176,35,63,.04);}
-  .input-icon.invalid{border-color:#B0233F;background:rgba(176,35,63,.04);}
+  .input-icon.invalid{border-color:rgba(176,35,63,.5);background:rgba(176,35,63,.04);}
   .cart-summary{display:flex;align-items:center;justify-content:space-between;padding:.9rem 0;margin-bottom:.4rem;border-top:1px dashed var(--line-strong);border-bottom:1px dashed var(--line-strong);}
   .cart-summary span:first-child{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--cocoa-muted);font-weight:600;}
   .cart-summary .total-val{font-family:var(--serif);font-size:1.6rem;color:var(--cocoa);}
@@ -553,7 +554,8 @@
     </div>
     <div class="social-grid" id="socialGrid">
       <div class="social-card reveal" id="socialInstagram" style="display:none">
-        <h3 class="serif">Instagram</h3>
+        <span class="social-eyebrow">Siga no</span>
+        <h3 class="social-title grad-text">Instagram</h3>
         <p>Acompanhe os bastidores e novidades da Tati Oyama no Instagram.</p>
         <a class="btn btn-primary" id="instaBtn" target="_blank" rel="noopener">📷 Seguir no Instagram</a>
         <div class="social-embed" id="instaEmbedWrap" style="display:none">
@@ -561,7 +563,8 @@
         </div>
       </div>
       <div class="social-card reveal" id="socialFacebook" style="display:none">
-        <h3 class="serif">Facebook</h3>
+        <span class="social-eyebrow">Siga no</span>
+        <h3 class="social-title grad-text">Facebook</h3>
         <p>Curta nossa página e fique por dentro das novidades pelo Facebook.</p>
         <a class="btn btn-primary" id="fbBtn" target="_blank" rel="noopener">👍 Curtir no Facebook</a>
       </div>

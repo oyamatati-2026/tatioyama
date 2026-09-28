@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root{
     --bg:#FDFBF7; --bg-alt:#F5F0E8; --cocoa:#2D241E; --cocoa-muted:#6B5D52;
@@ -77,6 +78,30 @@
   .date-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
   .date-filter-btn{padding:7px 14px;border-radius:999px;border:1.5px solid var(--line-strong);background:#fff;font-weight:600;font-size:.78rem;cursor:pointer;color:var(--cocoa-muted);}
   .date-filter-btn.active{background:var(--order);color:#fff;border-color:var(--order);}
+  .origin-tag{display:inline-block;font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .origin-site{background:rgba(85,107,47,.15);color:var(--ready);}
+  .origin-mesa{background:rgba(179,64,42,.14);color:#B3402A;}
+  #kdsOverlay{position:fixed;inset:0;z-index:300;background:#1d1510;color:#fff;display:none;flex-direction:column;padding:14px 18px;}
+  #kdsOverlay.open{display:flex;}
+  .kds-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;}
+  .kds-title{font-size:1.2rem;font-weight:700;}
+  .kds-controls{display:flex;align-items:center;gap:12px;font-size:.85rem;flex-wrap:wrap;}
+  .kds-controls select{background:#2d221a;color:#fff;border:1px solid #5a4636;border-radius:8px;padding:6px 8px;}
+  .kds-controls button{background:#2d221a;color:#fff;border:1px solid #5a4636;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;}
+  .kds-controls .kds-close{background:#B3402A;border-color:#B3402A;}
+  .kds-legend{display:flex;gap:8px;margin-bottom:10px;font-size:.72rem;font-weight:700;}
+  .kds-legend .lg{padding:3px 10px;border-radius:999px;}
+  .lg-novo{background:#C0433E;} .lg-preparando{background:#C08A3E;} .lg-pronto{background:#556B2F;}
+  #kdsGrid{flex:1;display:grid;gap:12px;overflow:auto;align-content:start;}
+  .kds-card{border-radius:14px;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:8px;border:3px solid transparent;min-height:150px;user-select:none;}
+  .kds-card.st-novo{background:#4a1f1c;border-color:#C0433E;}
+  .kds-card.st-preparando{background:#4a3416;border-color:#C08A3E;}
+  .kds-card.st-pronto{background:#26361a;border-color:#556B2F;}
+  .kds-head{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:1rem;}
+  .kds-time{font-size:.75rem;opacity:.75;font-weight:500;}
+  .kds-items{font-size:1.05rem;line-height:1.5;flex:1;}
+  .kds-foot{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;opacity:.9;}
+  .kds-cancel{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:.72rem;}
   .pos-layout{display:grid;grid-template-columns:1.6fr 1fr;gap:22px;align-items:start;}
   .pos-cat-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
   .pos-cat-tile{padding:12px 18px;border-radius:10px;border:1.5px solid var(--line-strong);background:#fff;font-weight:600;font-size:.82rem;cursor:pointer;color:var(--cocoa);}
@@ -140,6 +165,8 @@
     body.ready{flex-direction:column;}
     aside{width:100%; flex:none; position:relative; height:auto;}
     main{padding:24px 20px;}
+    .pos-layout{grid-template-columns:1fr;}
+    .pos-cart-col{position:static;}
   }
 </style>
 </head>
@@ -250,75 +277,128 @@
       <p class="hint">Toda vez que uma cor é alterada, a combinação anterior fica salva aqui. Dá pra restaurar quando quiser.</p>
       <div id="colorHistoryList" class="stack"></div>
     </div>
+    <div class="card" id="mesaToggleCard" style="display:none">
+      <h3>Módulo de Mesa (QR Code)</h3>
+      <p class="hint">Liga ou desliga o pedido pela mesa via QR code para todo o sistema. Enquanto desligado, os QR codes não funcionam e ninguém da equipe vê a aba "Mesas".</p>
+      <div class="switch-row"><input type="checkbox" id="mesaToggle" onchange="toggleMesaModule(this.checked)"> <label for="mesaToggle" style="margin:0">Módulo de Mesa ativado</label></div>
+    </div>
   </section>
 
   <section class="panel" id="panel-vendas">
+    <div class="card">
+      <h3>Nova venda (PDV)</h3>
+      <p class="hint">Toque na categoria, depois no produto para lançar. Ao finalizar, o estoque é atualizado automaticamente.</p>
+      <div class="pos-layout">
+        <div>
+          <div class="pos-cat-row" id="posCatRow"></div>
+          <div class="pos-prod-grid" id="posProdGrid"></div>
+        </div>
+        <div class="pos-cart-col">
+          <h4>Venda atual</h4>
+          <div id="pdvCartList"></div>
+          <p class="empty" id="pdvCartEmpty">Nenhum item adicionado ainda.</p>
+          <div class="pdv-total">Total: <span id="pdvTotal">R$ 0,00</span></div>
+
+          <label style="margin-top:14px">Forma de pagamento</label>
+          <div class="pay-methods" id="pdvPayMethods">
+            <button type="button" class="pay-btn" data-val="dinheiro" onclick="pdvSetPayment('dinheiro')">💵 Dinheiro</button>
+            <button type="button" class="pay-btn" data-val="pix" onclick="pdvSetPayment('pix')">📱 PIX</button>
+            <button type="button" class="pay-btn" data-val="credito" onclick="pdvSetPayment('credito')">💳 Crédito</button>
+            <button type="button" class="pay-btn" data-val="debito" onclick="pdvSetPayment('debito')">💳 Débito</button>
+          </div>
+
+          <div style="margin-top:14px"><label>Cliente (opcional)</label><input id="pdv_customer" placeholder="Nome do cliente"></div>
+          <div style="margin-top:10px"><label>Observação (opcional)</label><textarea id="pdv_note" rows="2"></textarea></div>
+
+          <div class="btn-row" style="margin-top:14px">
+            <button class="btn btn-primary" type="button" onclick="pdvFinalizeSale()">Finalizar venda</button>
+            <button class="btn btn-outline" type="button" onclick="pdvResetCart()">Limpar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Vendas do PDV</h3>
+      <p class="hint">Histórico das vendas lançadas manualmente. Cancelar devolve o estoque dos itens.</p>
+      <div class="date-filters" id="pdvDateFilter">
+        <button class="date-filter-btn active" data-range="all" onclick="setPdvRange('all')">Todas</button>
+        <button class="date-filter-btn" data-range="today" onclick="setPdvRange('today')">Hoje</button>
+        <button class="date-filter-btn" data-range="week" onclick="setPdvRange('week')">Esta semana</button>
+        <button class="date-filter-btn" data-range="month" onclick="setPdvRange('month')">Este mês</button>
+        <button class="date-filter-btn" data-range="lastmonth" onclick="setPdvRange('lastmonth')">Mês passado</button>
+      </div>
+      <div style="overflow-x:auto"><table id="pdvSalesTable"><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-cozinha">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:6px">
+        <h3 style="margin:0">Cozinha</h3>
+        <div class="btn-row">
+          <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--cocoa-muted);font-weight:600"><input type="checkbox" id="cozinhaShowEncomendas" checked onchange="loadCozinha()"> mostrar encomendas</label>
+          <button class="btn btn-outline btn-sm" onclick="openKDS()">📺 Modo TV (KDS)</button>
+        </div>
+      </div>
+      <p class="hint">Pedidos do site e das mesas, tudo num só lugar — a origem aparece em cada linha. Atualiza sozinho a cada 15s.</p>
+
+      <div class="date-filters" id="cozinhaDateFilter">
+        <button class="date-filter-btn active" data-range="today" onclick="setCozinhaRange('today')">Hoje</button>
+        <button class="date-filter-btn" data-range="yesterday" onclick="setCozinhaRange('yesterday')">Ontem</button>
+        <button class="date-filter-btn" data-range="week" onclick="setCozinhaRange('week')">Esta semana</button>
+        <button class="date-filter-btn" data-range="month" onclick="setCozinhaRange('month')">Este mês</button>
+        <button class="date-filter-btn" data-range="all" onclick="setCozinhaRange('all')">Todas</button>
+      </div>
+      <div class="date-filters" id="cozinhaStatusFilter">
+        <button class="date-filter-btn active" data-status="ativos" onclick="setCozinhaStatus('ativos')">Em aberto</button>
+        <button class="date-filter-btn" data-status="novo" onclick="setCozinhaStatus('novo')">Novos</button>
+        <button class="date-filter-btn" data-status="preparando" onclick="setCozinhaStatus('preparando')">Preparando</button>
+        <button class="date-filter-btn" data-status="pronto" onclick="setCozinhaStatus('pronto')">Prontos</button>
+        <button class="date-filter-btn" data-status="entregue" onclick="setCozinhaStatus('entregue')">Entregues</button>
+        <button class="date-filter-btn" data-status="cancelado" onclick="setCozinhaStatus('cancelado')">Cancelados</button>
+        <button class="date-filter-btn" data-status="todos" onclick="setCozinhaStatus('todos')">Todos</button>
+      </div>
+
+      <div style="overflow-x:auto"><table id="cozinhaUnifTable"><thead><tr><th>Origem</th><th>Data</th><th>Itens</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-mesas">
     <div class="sales-tabs">
-      <button class="sales-tab active" id="tabBtnPedidos" onclick="switchSalesTab('pedidos')">Pedidos do site</button>
-      <button class="sales-tab" id="tabBtnPdv" onclick="switchSalesTab('pdv')">PDV / Caixa</button>
+      <button class="sales-tab active" id="tabBtnMesasAbertas" onclick="switchMesaTab('abertas')">Mesas abertas</button>
+      <button class="sales-tab" id="tabBtnMesasFechadas" onclick="switchMesaTab('fechadas')">Fechadas recentes</button>
+      <button class="sales-tab" id="tabBtnCadastroMesas" onclick="switchMesaTab('cadastro')">Cadastro de mesas</button>
     </div>
 
-    <div id="salesTabPedidos">
+    <div id="mesaTabAbertas">
       <div class="card">
-        <h3>Pedidos / solicitações</h3>
-        <p class="hint">Registro dos pedidos enviados pelo "Monte seu pedido" no site.</p>
-        <div id="newOrdersBanner" style="display:none;margin-bottom:14px;padding:12px 16px;background:rgba(192,67,62,.08);border:1px solid rgba(192,67,62,.25);border-radius:10px;font-size:.86rem;font-weight:600;color:#B0233F;"></div>
-        <div class="date-filters" id="ordersDateFilter">
-          <button class="date-filter-btn active" data-range="all" onclick="setOrdersRange('all')">Todas</button>
-          <button class="date-filter-btn" data-range="today" onclick="setOrdersRange('today')">Hoje</button>
-          <button class="date-filter-btn" data-range="week" onclick="setOrdersRange('week')">Esta semana</button>
-          <button class="date-filter-btn" data-range="month" onclick="setOrdersRange('month')">Este mês</button>
-          <button class="date-filter-btn" data-range="lastmonth" onclick="setOrdersRange('lastmonth')">Mês passado</button>
-        </div>
-        <div style="overflow-x:auto"><table id="ordersTable"><thead><tr><th></th><th>Data</th><th>Cliente</th><th>Itens</th><th>Tipo</th><th>Observação</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+        <h3>Mesas abertas agora</h3>
+        <p class="hint">Total acumulado de todas as rodadas da sessão. Use "Lançar pedido" para pedir pelo cliente (garçom). Os pedidos em preparo aparecem na aba Cozinha.</p>
+        <div style="overflow-x:auto"><table id="mesasAbertasTable"><thead><tr><th>Mesa</th><th>Cliente</th><th>Aberta desde</th><th>Itens</th><th>Total</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
     </div>
 
-    <div id="salesTabPdv" style="display:none">
+    <div id="mesaTabFechadas" style="display:none">
       <div class="card">
-        <h3>Nova venda (PDV)</h3>
-        <p class="hint">Toque na categoria, depois no produto para lançar. Ao finalizar, o estoque é atualizado automaticamente.</p>
-        <div class="pos-layout">
-          <div>
-            <div class="pos-cat-row" id="posCatRow"></div>
-            <div class="pos-prod-grid" id="posProdGrid"></div>
-          </div>
-          <div class="pos-cart-col">
-            <h4>Venda atual</h4>
-            <div id="pdvCartList"></div>
-            <p class="empty" id="pdvCartEmpty">Nenhum item adicionado ainda.</p>
-            <div class="pdv-total">Total: <span id="pdvTotal">R$ 0,00</span></div>
-
-            <label style="margin-top:14px">Forma de pagamento</label>
-            <div class="pay-methods" id="pdvPayMethods">
-              <button type="button" class="pay-btn" data-val="dinheiro" onclick="pdvSetPayment('dinheiro')">💵 Dinheiro</button>
-              <button type="button" class="pay-btn" data-val="pix" onclick="pdvSetPayment('pix')">📱 PIX</button>
-              <button type="button" class="pay-btn" data-val="credito" onclick="pdvSetPayment('credito')">💳 Crédito</button>
-              <button type="button" class="pay-btn" data-val="debito" onclick="pdvSetPayment('debito')">💳 Débito</button>
-            </div>
-
-            <div style="margin-top:14px"><label>Cliente (opcional)</label><input id="pdv_customer" placeholder="Nome do cliente"></div>
-            <div style="margin-top:10px"><label>Observação (opcional)</label><textarea id="pdv_note" rows="2"></textarea></div>
-
-            <div class="btn-row" style="margin-top:14px">
-              <button class="btn btn-primary" type="button" onclick="pdvFinalizeSale()">Finalizar venda</button>
-              <button class="btn btn-outline" type="button" onclick="pdvResetCart()">Limpar</button>
-            </div>
-          </div>
-        </div>
+        <h3>Mesas fechadas recentemente</h3>
+        <p class="hint">Só é possível reabrir a última sessão fechada de cada mesa, e apenas se a mesa não tiver outra sessão aberta.</p>
+        <div style="overflow-x:auto"><table id="mesasFechadasTable"><thead><tr><th>Mesa</th><th>Cliente</th><th>Fechada em</th><th>Total</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
+    </div>
 
+    <div id="mesaTabCadastro" style="display:none">
       <div class="card">
-        <h3>Vendas do PDV</h3>
-        <p class="hint">Histórico das vendas lançadas manualmente. Cancelar devolve o estoque dos itens.</p>
-        <div class="date-filters" id="pdvDateFilter">
-          <button class="date-filter-btn active" data-range="all" onclick="setPdvRange('all')">Todas</button>
-          <button class="date-filter-btn" data-range="today" onclick="setPdvRange('today')">Hoje</button>
-          <button class="date-filter-btn" data-range="week" onclick="setPdvRange('week')">Esta semana</button>
-          <button class="date-filter-btn" data-range="month" onclick="setPdvRange('month')">Este mês</button>
-          <button class="date-filter-btn" data-range="lastmonth" onclick="setPdvRange('lastmonth')">Mês passado</button>
-        </div>
-        <div style="overflow-x:auto"><table id="pdvSalesTable"><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+        <h3>Nova mesa</h3>
+        <form class="stack" id="tableForm">
+          <div><label>Nome / número da mesa</label><input id="tf_label" placeholder="Ex: Mesa 7" required></div>
+          <button class="btn btn-primary" type="submit">Criar mesa</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>Mesas cadastradas</h3>
+        <p class="hint">Cada mesa tem um QR code próprio. Clique em "Ver QR" para exibir e imprimir.</p>
+        <div style="overflow-x:auto"><table id="tablesTable"><thead><tr><th>Mesa</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
     </div>
   </section>
@@ -361,6 +441,26 @@
     </div>
   </section>
 </main>
+
+<div id="kdsOverlay">
+  <div class="kds-top">
+    <div class="kds-title">📺 Cozinha — <span id="kdsCount">0</span> pedidos</div>
+    <div class="kds-controls">
+      <label>Por tela
+        <select id="kdsPerPage" onchange="kdsPage=0;renderKDS()">
+          <option value="6">6</option><option value="9" selected>9</option><option value="12">12</option><option value="16">16</option>
+        </select>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="kdsShowEnc" checked onchange="kdsPage=0;renderKDS()"> encomendas</label>
+      <button onclick="kdsPrev()">◀</button>
+      <span id="kdsPageInfo">1/1</span>
+      <button onclick="kdsNext()">▶</button>
+      <button onclick="closeKDS()" class="kds-close">Sair</button>
+    </div>
+  </div>
+  <div class="kds-legend"><span class="lg lg-novo">Novo</span><span class="lg lg-preparando">Preparando</span><span class="lg lg-pronto">Pronto</span></div>
+  <div id="kdsGrid"></div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -552,7 +652,9 @@ function canDelete(mod){
   return mod === 'pedidos' ? !!PERMS.pedidos_delete : mod === 'pdv' ? !!PERMS.pdv_delete : false;
 }
 
-const TITLES = {overview:'Visão geral', produtos:'Produtos', categorias:'Categorias', banners:'Banners', links:'Links & redes sociais', config:'Configurações do site', vendas:'Vendas — Pedidos & PDV', usuarios:'Usuários & permissões', conta:'Minha conta'};
+const TITLES = {overview:'Visão geral', produtos:'Produtos', categorias:'Categorias', banners:'Banners', links:'Links & redes sociais', config:'Configurações do site', vendas:'PDV / Caixa', cozinha:'Cozinha', mesas:'Mesas (QR Code)', usuarios:'Usuários & permissões', conta:'Minha conta'};
+
+let MESA_ATIVO = false;
 
 function buildMenu(){
   const items = [['overview','Visão geral']];
@@ -561,7 +663,9 @@ function buildMenu(){
   if(canModule('banners')) items.push(['banners','Banners']);
   if(canModule('links')) items.push(['links','Links & redes']);
   if(canModule('config') || canCores() || canModule('textos')) items.push(['config','Configurações']);
-  if(canModule('pedidos') || canModule('pdv')) items.push(['vendas','Vendas']);
+  if(canModule('cozinha') || canModule('pedidos') || (MESA_ATIVO && canModule('mesas'))) items.push(['cozinha','Cozinha']);
+  if(canModule('pdv')) items.push(['vendas','PDV / Caixa']);
+  if(MESA_ATIVO && (ME.role === 'master' || canModule('mesas'))) items.push(['mesas','Mesas']);
   if(ME.role === 'master' || canModule('usuarios')) items.push(['usuarios','Usuários']);
   items.push(['conta','Minha conta']);
   const nav = document.getElementById('sideNav');
@@ -577,15 +681,10 @@ function showPanel(key){
   if(key==='banners') loadBanners();
   if(key==='links') loadLinks();
   if(key==='config') loadSettings();
-  if(key==='vendas'){
-    const showPedidos = canModule('pedidos');
-    const showPdv = canModule('pdv');
-    document.getElementById('tabBtnPedidos').style.display = showPedidos ? '' : 'none';
-    document.getElementById('tabBtnPdv').style.display = showPdv ? '' : 'none';
-    switchSalesTab(showPedidos ? 'pedidos' : 'pdv');
-    if(showPedidos) loadOrders();
-    if(showPdv) loadPDV();
-  }
+  clearInterval(cozinhaTimer);
+  if(key==='cozinha'){ loadCozinha(); cozinhaTimer = setInterval(loadCozinha, 15000); }
+  if(key==='vendas') loadPDV();
+  if(key==='mesas'){ switchMesaTab('abertas'); }
   if(key==='usuarios') loadUsers();
   if(key==='overview') loadOverview();
 }
@@ -600,6 +699,8 @@ async function boot(){
     const { data: perms } = await sb.from('user_permissions').select('*').eq('user_id', ME.id).maybeSingle();
     PERMS = perms || null;
   }
+  const { data: mesaSetting } = await sb.from('site_settings').select('value').eq('key','mesa_module_ativo').maybeSingle();
+  MESA_ATIVO = mesaSetting && mesaSetting.value === 'true';
   document.getElementById('sideRole').innerHTML = `${profile.full_name || profile.username} <br><span class="badge-role">${profile.role === 'master' ? 'MASTER · Serf Tecnologia' : 'EQUIPE · Tati Oyama'}</span>`;
   document.getElementById('contaInfo').textContent = `Logada(o) como ${profile.email || session.user.email}.`;
   buildMenu();
@@ -695,6 +796,8 @@ function openProductForm(p){
       <div id="typePreview">${typePreview}</div>
       <div class="switch-row"><input type="checkbox" id="pf_available" ${p.available!==false?'checked':''}> <label for="pf_available" style="margin:0">Disponível para venda</label></div>
       <div class="switch-row"><input type="checkbox" id="pf_show_site" ${p.show_on_site!==false?'checked':''}> <label for="pf_show_site" style="margin:0">Exibir no site</label></div>
+      <div class="switch-row"><input type="checkbox" id="pf_show_mesa" ${p.show_on_mesa!==false?'checked':''}> <label for="pf_show_mesa" style="margin:0">Exibir no pedido pela mesa (QR Code)</label></div>
+      <div class="field-hint" style="margin-top:-8px">Desmarque para itens só sob encomenda com prazo (ex: bolo com 24h) — assim o cliente na mesa não consegue pedir algo que não está pronto na hora.</div>
       <div class="field-hint" style="margin-top:-8px">Se desmarcado, o produto continua ativo e disponível no PDV, mas não aparece no cardápio do site.</div>
       <div>
         <label>Foto do produto</label>
@@ -742,6 +845,7 @@ async function saveProduct(id){
       stock: parseInt(document.getElementById('pf_stock').value, 10),
       available: document.getElementById('pf_available').checked,
       show_on_site: document.getElementById('pf_show_site').checked,
+      show_on_mesa: document.getElementById('pf_show_mesa').checked,
     };
     if(file) payload.image_url = await uploadImage(file, 'products');
     const { error } = id
@@ -945,6 +1049,18 @@ async function loadSettings(){
 
   loadLogos();
   loadColorHistory();
+
+  if(ME.role === 'master'){
+    document.getElementById('mesaToggleCard').style.display = '';
+    document.getElementById('mesaToggle').checked = MESA_ATIVO;
+  }
+}
+async function toggleMesaModule(checked){
+  const { error } = await sb.from('site_settings').update({ value: checked ? 'true' : 'false' }).eq('key','mesa_module_ativo');
+  if(error){ toast('Erro: ' + error.message); document.getElementById('mesaToggle').checked = !checked; return; }
+  MESA_ATIVO = checked;
+  toast(checked ? 'Módulo de Mesa ativado!' : 'Módulo de Mesa desativado.');
+  buildMenu();
 }
 async function saveTexts(){
   const inputs = document.querySelectorAll('#textsForm [data-textkey]');
@@ -1045,6 +1161,7 @@ function getRangeBounds(range){
   const now = new Date();
   const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   if(range === 'today') return { from: startOfDay(now), to: null };
+  if(range === 'yesterday'){ const t = startOfDay(now); const y = new Date(t); y.setDate(y.getDate()-1); return { from: y, to: t }; }
   if(range === 'week'){
     const day = now.getDay();
     const diffToMonday = (day === 0 ? 6 : day - 1);
@@ -1059,79 +1176,163 @@ function getRangeBounds(range){
   return { from: null, to: null };
 }
 
-/* PEDIDOS */
-const ORDER_STATUS = ['novo','em preparo','pronto','entregue','cancelado'];
-let ordersRange = 'all';
-function setOrdersRange(range){
-  ordersRange = range;
-  document.querySelectorAll('#ordersDateFilter .date-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.range===range));
-  loadOrders();
-}
-async function loadOrders(){
-  let ordersQuery = sb.from('orders').select('*').order('created_at', {ascending:false}).limit(200);
-  const { from, to } = getRangeBounds(ordersRange);
-  if(from) ordersQuery = ordersQuery.gte('created_at', from.toISOString());
-  if(to) ordersQuery = ordersQuery.lt('created_at', to.toISOString());
-  const [{ data, error }, { data: prods }] = await Promise.all([
-    ordersQuery,
+/* COZINHA UNIFICADA (pedidos do site + rodadas das mesas) */
+let cozinhaTimer = null;
+let cozinhaRange = 'today';
+let cozinhaStatus = 'ativos';
+const COZ_LABELS = {novo:'Novo', preparando:'Preparando', pronto:'Pronto', entregue:'Entregue', cancelado:'Cancelado'};
+const COZ_NEXT = {novo:'preparando', preparando:'pronto', pronto:'entregue'};
+function normStatus(st){ return st === 'em preparo' ? 'preparando' : st; }
+function dbStatus(source, st){ return (source === 'site' && st === 'preparando') ? 'em preparo' : st; }
+
+async function fetchCozinhaData(range, statusList){
+  const { from, to } = getRangeBounds(range);
+  const wantSite = canModule('pedidos') || canModule('cozinha');
+  const wantMesa = MESA_ATIVO && (canModule('mesas') || canModule('cozinha'));
+  let qSite = null, qMesa = null;
+  if(wantSite){
+    qSite = sb.from('orders').select('*').order('created_at', {ascending:false}).limit(300);
+    if(from) qSite = qSite.gte('created_at', from.toISOString());
+    if(to) qSite = qSite.lt('created_at', to.toISOString());
+  }
+  if(wantMesa){
+    qMesa = sb.from('table_orders').select('*').order('created_at', {ascending:false}).limit(300);
+    if(from) qMesa = qMesa.gte('created_at', from.toISOString());
+    if(to) qMesa = qMesa.lt('created_at', to.toISOString());
+  }
+  const [siteRes, mesaRes, prodRes] = await Promise.all([
+    qSite || Promise.resolve({data:[]}),
+    qMesa || Promise.resolve({data:[]}),
     sb.from('products').select('id,stock,available')
   ]);
-  const tbody = document.querySelector('#ordersTable tbody');
-  const banner = document.getElementById('newOrdersBanner');
-  if(error){ tbody.innerHTML = `<tr><td colspan="8" class="empty">Erro: ${error.message}</td></tr>`; banner.style.display='none'; return; }
-  if(!data.length){ tbody.innerHTML = `<tr><td colspan="8" class="empty">${ordersRange==='all' ? 'Nenhum pedido recebido ainda.' : 'Nenhum pedido neste período.'}</td></tr>`; banner.style.display='none'; return; }
+  const prodMap = {}; (prodRes.data||[]).forEach(p => prodMap[p.id] = p);
+  const isEnc = (items) => (items||[]).some(i => { const p = prodMap[i.id]; return p && p.available && !(p.stock > 0); });
 
-  const prodMap = {}; (prods||[]).forEach(p => prodMap[p.id] = p);
-  const newCount = data.filter(o => o.status === 'novo').length;
-  if(newCount > 0){
-    banner.style.display = 'block';
-    banner.innerHTML = `<span class="new-dot" style="vertical-align:middle;margin-right:8px;"></span>${newCount} pedido${newCount>1?'s':''} novo${newCount>1?'s':''} aguardando atendimento`;
-  } else { banner.style.display = 'none'; }
+  // rótulos de mesa
+  const mesaRows = mesaRes.data || [];
+  const sessIds = [...new Set(mesaRows.map(o => o.session_id))];
+  let sessMap = {}, tableMap = {};
+  if(sessIds.length){
+    const { data: sessions } = await sb.from('table_sessions').select('id,table_id').in('id', sessIds);
+    (sessions||[]).forEach(x => sessMap[x.id] = x.table_id);
+    const tIds = [...new Set((sessions||[]).map(x => x.table_id))];
+    if(tIds.length){
+      const { data: tables } = await sb.from('restaurant_tables').select('id,label').in('id', tIds);
+      (tables||[]).forEach(t => tableMap[t.id] = t.label);
+    }
+  }
 
-  tbody.innerHTML = data.map(o => {
-    const isNew = o.status === 'novo';
-    let hasReady = false, hasOrder = false, hasUnknown = false;
-    (o.items||[]).forEach(i => {
-      const p = prodMap[i.id];
-      if(!p){ hasUnknown = true; return; }
-      if(p.stock > 0) hasReady = true;
-      else if(p.available) hasOrder = true;
-      else hasUnknown = true;
-    });
-    let typeHtml = '';
-    if(hasReady) typeHtml += '<span class="type-pill ready">Pronta Entrega</span>';
-    if(hasOrder) typeHtml += '<span class="type-pill order">Sob Encomenda</span>';
-    if(hasUnknown && !hasReady && !hasOrder) typeHtml += '<span class="type-pill unknown">—</span>';
-    return `
-    <tr class="${isNew ? 'order-new' : ''}">
-      <td>${isNew ? '<span class="new-dot" title="Pedido novo"></span>' : ''}</td>
-      <td>${new Date(o.created_at).toLocaleString('pt-BR')}</td>
-      <td>${o.customer_name || '—'}<br><span class="hint">${o.customer_phone||''}</span></td>
-      <td>${(o.items||[]).map(i=>`${i.qty}x ${i.name}`).join('<br>')}</td>
-      <td>${typeHtml}</td>
-      <td>${o.general_note || '—'}</td>
-      <td><select onchange="updateOrderStatus('${o.id}', this.value)" ${canModule('pedidos','edit')?'':'disabled'}>${ORDER_STATUS.map(s => `<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
-      <td>${canDelete('pedidos') ? `<button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.id}')">Excluir</button>` : ''}</td>
+  const merged = [];
+  (siteRes.data||[]).forEach(o => merged.push({ source:'site', id:o.id, status:normStatus(o.status), created_at:o.created_at, items:o.items||[], customer:o.customer_name, phone:o.customer_phone, note:o.general_note, enc:isEnc(o.items), origin:'🌐 Site' }));
+  mesaRows.forEach(o => merged.push({ source:'mesa', id:o.id, status:o.status, created_at:o.created_at, items:o.items||[], enc:isEnc(o.items), origin:'🍽️ ' + (tableMap[sessMap[o.session_id]] || 'Mesa') }));
+  merged.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  return statusList ? merged.filter(m => statusList.includes(m.status)) : merged;
+}
+
+function setCozinhaRange(r){
+  cozinhaRange = r;
+  document.querySelectorAll('#cozinhaDateFilter .date-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.range===r));
+  loadCozinha();
+}
+function setCozinhaStatus(st){
+  cozinhaStatus = st;
+  document.querySelectorAll('#cozinhaStatusFilter .date-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.status===st));
+  loadCozinha();
+}
+async function loadCozinha(){
+  const tbody = document.querySelector('#cozinhaUnifTable tbody');
+  if(!tbody) return;
+  let data;
+  try{ data = await fetchCozinhaData(cozinhaRange, null); }
+  catch(e){ tbody.innerHTML = `<tr><td colspan="5" class="empty">Erro: ${e.message}</td></tr>`; return; }
+  const showEnc = document.getElementById('cozinhaShowEncomendas').checked;
+  let rows = data.filter(r => showEnc || !r.enc);
+  if(cozinhaStatus === 'ativos') rows = rows.filter(r => ['novo','preparando','pronto'].includes(r.status));
+  else if(cozinhaStatus !== 'todos') rows = rows.filter(r => r.status === cozinhaStatus);
+  if(!rows.length){ tbody.innerHTML = `<tr><td colspan="5" class="empty">Nenhum pedido neste filtro.</td></tr>`; return; }
+  const canEditRow = (r) => r.source === 'site' ? (canModule('pedidos','edit') || canModule('cozinha','edit')) : (canModule('mesas','edit') || canModule('cozinha','edit'));
+  const canDelRow = (r) => r.source === 'site' ? canDelete('pedidos') : canModule('mesas','edit');
+  tbody.innerHTML = rows.map(r => {
+    const itemsTxt = r.items.map(i => `${i.qty}x ${i.name}`).join('<br>');
+    const extra = r.source === 'site' ? `<div class="hint">${r.customer||''} ${r.phone?('· '+r.phone):''}${r.note?('<br>Obs: '+r.note):''}</div>` : '';
+    const enc = r.enc ? ' <span class="type-pill order">Encomenda</span>' : '';
+    const isNew = r.status === 'novo';
+    return `<tr class="${isNew?'order-new':''}">
+      <td><span class="origin-tag ${r.source==='site'?'origin-site':'origin-mesa'}">${r.origin}</span>${enc}</td>
+      <td>${new Date(r.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${itemsTxt}${extra}</td>
+      <td><select onchange="updateCozStatus('${r.source}','${r.id}',this.value)" ${canEditRow(r)?'':'disabled'}>${['novo','preparando','pronto','entregue','cancelado'].map(s => `<option value="${s}" ${r.status===s?'selected':''}>${COZ_LABELS[s]}</option>`).join('')}</select></td>
+      <td>${canDelRow(r) ? `<button class="btn btn-danger btn-sm" onclick="deleteCozOrder('${r.source}','${r.id}')">Excluir</button>` : ''}</td>
     </tr>`;
   }).join('');
 }
-async function updateOrderStatus(id, status){
-  const { error } = await sb.from('orders').update({status}).eq('id', id);
-  if(error) toast('Erro: ' + error.message); else { toast('Status atualizado.'); loadOrders(); }
+async function updateCozStatus(source, id, status){
+  const table = source === 'site' ? 'orders' : 'table_orders';
+  const { error } = await sb.from(table).update({ status: dbStatus(source, status) }).eq('id', id);
+  if(error){ toast('Erro: ' + error.message); return false; }
+  toast('Status atualizado.');
+  if(document.getElementById('kdsOverlay').classList.contains('open')) refreshKDS(); else loadCozinha();
+  return true;
 }
-async function deleteOrder(id){
-  if(!confirm('Excluir este pedido do histórico?')) return;
-  const { error } = await sb.from('orders').delete().eq('id', id);
-  if(error){ toast('Erro: '+error.message); return; }
-  toast('Pedido excluído.'); loadOrders();
+async function deleteCozOrder(source, id){
+  if(!confirm('Excluir este pedido definitivamente?')) return;
+  const table = source === 'site' ? 'orders' : 'table_orders';
+  const { error } = await sb.from(table).delete().eq('id', id);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Pedido excluído.');
+  loadCozinha();
 }
 
-/* VENDAS — abas Pedidos / PDV */
-function switchSalesTab(tab){
-  document.getElementById('salesTabPedidos').style.display = tab==='pedidos' ? 'block' : 'none';
-  document.getElementById('salesTabPdv').style.display = tab==='pdv' ? 'block' : 'none';
-  document.getElementById('tabBtnPedidos').classList.toggle('active', tab==='pedidos');
-  document.getElementById('tabBtnPdv').classList.toggle('active', tab==='pdv');
+/* KDS — modo TV */
+let kdsData = [], kdsPage = 0, kdsTimer = null;
+async function openKDS(){
+  document.getElementById('kdsOverlay').classList.add('open');
+  document.getElementById('kdsShowEnc').checked = document.getElementById('cozinhaShowEncomendas').checked;
+  kdsPage = 0;
+  await refreshKDS();
+  clearInterval(kdsTimer);
+  kdsTimer = setInterval(refreshKDS, 15000);
+}
+function closeKDS(){
+  document.getElementById('kdsOverlay').classList.remove('open');
+  clearInterval(kdsTimer);
+  loadCozinha();
+}
+async function refreshKDS(){
+  try{ kdsData = await fetchCozinhaData('all', ['novo','preparando','pronto']); }catch(e){ return; }
+  renderKDS();
+}
+function renderKDS(){
+  const showEnc = document.getElementById('kdsShowEnc').checked;
+  const perPage = parseInt(document.getElementById('kdsPerPage').value, 10) || 9;
+  const rows = kdsData.filter(r => showEnc || !r.enc);
+  const pages = Math.max(1, Math.ceil(rows.length / perPage));
+  if(kdsPage >= pages) kdsPage = pages - 1;
+  const slice = rows.slice(kdsPage*perPage, (kdsPage+1)*perPage);
+  const cols = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(perPage))));
+  const grid = document.getElementById('kdsGrid');
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  document.getElementById('kdsCount').textContent = rows.length;
+  document.getElementById('kdsPageInfo').textContent = `${kdsPage+1}/${pages}`;
+  grid.innerHTML = slice.length ? slice.map(r => {
+    const mins = Math.max(0, Math.round((Date.now() - new Date(r.created_at).getTime())/60000));
+    return `<div class="kds-card st-${r.status}" onclick="kdsAdvance('${r.source}','${r.id}','${r.status}')">
+      <div class="kds-head"><span>${r.origin}</span><span class="kds-time">${mins} min</span></div>
+      <div class="kds-items">${r.items.map(i => `<b>${i.qty}x</b> ${i.name}`).join('<br>')}</div>
+      <div class="kds-foot"><span>${COZ_LABELS[r.status]}${r.enc?' · Encomenda':''} — toque p/ avançar</span>
+        <button class="kds-cancel" onclick="event.stopPropagation();kdsCancel('${r.source}','${r.id}')">Cancelar</button></div>
+    </div>`;
+  }).join('') : '<div style="opacity:.6;padding:2rem;font-size:1.1rem">Nenhum pedido em aberto. 🎉</div>';
+}
+function kdsPrev(){ if(kdsPage>0){ kdsPage--; renderKDS(); } }
+function kdsNext(){ kdsPage++; renderKDS(); }
+async function kdsAdvance(source, id, status){
+  const next = COZ_NEXT[status];
+  if(next) await updateCozStatus(source, id, next);
+}
+async function kdsCancel(source, id){
+  if(!confirm('Cancelar este pedido?')) return;
+  await updateCozStatus(source, id, 'cancelado');
 }
 
 /* PDV — VENDAS MANUAIS (estilo caixa: categoria -> produtos em quadradinhos) */
@@ -1292,6 +1493,224 @@ async function pdvDeleteSale(id){
   loadPdvSales();
 }
 
+/* MESAS (QR CODE) */
+function canReopenMesa(){ return ME.role === 'master' || !!(PERMS && PERMS.mesas_reopen); }
+
+function switchMesaTab(tab){
+  document.getElementById('mesaTabAbertas').style.display = tab==='abertas' ? 'block' : 'none';
+  document.getElementById('mesaTabFechadas').style.display = tab==='fechadas' ? 'block' : 'none';
+  document.getElementById('mesaTabCadastro').style.display = tab==='cadastro' ? 'block' : 'none';
+  document.getElementById('tabBtnMesasAbertas').classList.toggle('active', tab==='abertas');
+  document.getElementById('tabBtnMesasFechadas').classList.toggle('active', tab==='fechadas');
+  document.getElementById('tabBtnCadastroMesas').classList.toggle('active', tab==='cadastro');
+  if(tab==='abertas') loadMesasAbertas();
+  if(tab==='fechadas') loadMesasFechadas();
+  if(tab==='cadastro') loadTables();
+}
+
+function sumOrders(orders){
+  return {
+    itemCount: orders.reduce((sum,o) => sum + (o.items||[]).reduce((a,i)=>a+i.qty,0), 0),
+    total: orders.reduce((sum,o) => sum + (o.items||[]).reduce((a,i)=>a+i.price*i.qty,0), 0)
+  };
+}
+
+async function loadMesasAbertas(){
+  const { data: sessions, error } = await sb.from('table_sessions').select('*').eq('status','aberta').order('opened_at');
+  const tbody = document.querySelector('#mesasAbertasTable tbody');
+  if(error){ tbody.innerHTML = `<tr><td colspan="6" class="empty">Erro: ${error.message}</td></tr>`; return; }
+  if(!sessions.length){ tbody.innerHTML = `<tr><td colspan="6" class="empty">Nenhuma mesa aberta no momento.</td></tr>`; return; }
+
+  const tableIds = [...new Set(sessions.map(s => s.table_id))];
+  const { data: tables } = await sb.from('restaurant_tables').select('id,label').in('id', tableIds);
+  const tableMap = {}; (tables||[]).forEach(t => tableMap[t.id] = t.label);
+  const { data: allOrders } = await sb.from('table_orders').select('*').in('session_id', sessions.map(s => s.id)).neq('status','cancelado');
+
+  tbody.innerHTML = sessions.map(s => {
+    const orders = (allOrders||[]).filter(o => o.session_id === s.id);
+    const { itemCount, total } = sumOrders(orders);
+    const pend = orders.filter(o => ['novo','preparando','pronto'].includes(o.status)).length;
+    const label = (tableMap[s.table_id]||'—');
+    return `<tr>
+      <td><b>${label}</b>${pend ? ` <span class="type-pill order">${pend} em aberto</span>` : ''}</td>
+      <td>${s.customer_name || '—'}</td>
+      <td>${new Date(s.opened_at).toLocaleString('pt-BR')}</td>
+      <td>${itemCount} itens</td>
+      <td>${money(total)}</td>
+      <td class="btn-row">
+        <button class="btn btn-outline btn-sm" onclick="openLaunchModal('${s.id}','${label.replace(/'/g,"&#39;")}')">+ Lançar pedido</button>
+        <button class="btn btn-danger btn-sm" onclick="fecharMesa('${s.id}','${label.replace(/'/g,"&#39;")}')">Fechar mesa</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function fecharMesa(sessionId, label){
+  const { data: pending } = await sb.from('table_orders').select('id,status').eq('session_id', sessionId).in('status',['novo','preparando','pronto']);
+  const n = (pending||[]).length;
+  if(n > 0){
+    if(!confirm(`⚠️ A ${label} ainda tem ${n} pedido(s) em aberto (novo, em preparo ou pronto, ainda não entregue).\n\nDeseja ver os pedidos antes? Clique em "Cancelar" para voltar e conferir na aba Cozinha.\nClique em "OK" para continuar e fechar mesmo assim.`)) return;
+    if(!confirm(`Tem certeza que deseja fechar a ${label} COM pedidos em aberto?\nDepois de fechada, só quem tem permissão poderá reabrir.`)) return;
+  } else {
+    if(!confirm(`Fechar a ${label}? A sessão atual será encerrada — um novo QR scan abrirá uma sessão nova.`)) return;
+  }
+  const { error } = await sb.from('table_sessions').update({ status:'fechada', closed_at: new Date().toISOString(), closed_by: ME.id }).eq('id', sessionId);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Mesa fechada.');
+  loadMesasAbertas();
+}
+
+async function loadMesasFechadas(){
+  const tbody = document.querySelector('#mesasFechadasTable tbody');
+  const { data: closed, error } = await sb.from('table_sessions').select('*').eq('status','fechada').order('closed_at', {ascending:false}).limit(40);
+  if(error){ tbody.innerHTML = `<tr><td colspan="5" class="empty">Erro: ${error.message}</td></tr>`; return; }
+  if(!closed.length){ tbody.innerHTML = `<tr><td colspan="5" class="empty">Nenhuma mesa fechada ainda.</td></tr>`; return; }
+  const tableIds = [...new Set(closed.map(s => s.table_id))];
+  const [{ data: tables }, { data: openNow }, { data: orders }] = await Promise.all([
+    sb.from('restaurant_tables').select('id,label').in('id', tableIds),
+    sb.from('table_sessions').select('table_id').eq('status','aberta').in('table_id', tableIds),
+    sb.from('table_orders').select('*').in('session_id', closed.map(s => s.id)).neq('status','cancelado')
+  ]);
+  const tableMap = {}; (tables||[]).forEach(t => tableMap[t.id] = t.label);
+  const openSet = new Set((openNow||[]).map(o => o.table_id));
+  const latestClosedPerTable = {};
+  closed.forEach(s => { if(!latestClosedPerTable[s.table_id]) latestClosedPerTable[s.table_id] = s.id; });
+
+  tbody.innerHTML = closed.map(s => {
+    const { total } = sumOrders((orders||[]).filter(o => o.session_id === s.id));
+    const isLatest = latestClosedPerTable[s.table_id] === s.id;
+    const hasOpen = openSet.has(s.table_id);
+    let action = '';
+    if(canReopenMesa()){
+      if(isLatest && !hasOpen) action = `<button class="btn btn-outline btn-sm" onclick="reabrirMesa('${s.id}','${(tableMap[s.table_id]||'').replace(/'/g,"&#39;")}')">Reabrir</button>`;
+      else action = `<span class="hint">${hasOpen ? 'mesa já tem sessão aberta' : 'só a última pode ser reaberta'}</span>`;
+    }
+    return `<tr>
+      <td><b>${tableMap[s.table_id]||'—'}</b></td>
+      <td>${s.customer_name || '—'}</td>
+      <td>${s.closed_at ? new Date(s.closed_at).toLocaleString('pt-BR') : '—'}</td>
+      <td>${money(total)}</td>
+      <td>${action}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function reabrirMesa(sessionId, label){
+  if(!canReopenMesa()){ toast('Você não tem permissão para reabrir mesas.'); return; }
+  const { data: sess } = await sb.from('table_sessions').select('table_id,status').eq('id', sessionId).single();
+  if(!sess || sess.status !== 'fechada'){ toast('Esta mesa não está fechada.'); return; }
+  const { data: openNow } = await sb.from('table_sessions').select('id').eq('table_id', sess.table_id).eq('status','aberta');
+  if(openNow && openNow.length){ toast('Essa mesa já tem uma sessão aberta — não é possível reabrir.'); loadMesasFechadas(); return; }
+  if(!confirm(`Reabrir a ${label}? Ela volta para "Mesas abertas" com os pedidos que já tinha.`)) return;
+  const { error } = await sb.from('table_sessions').update({ status:'aberta', closed_at:null, closed_by:null }).eq('id', sessionId);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Mesa reaberta.');
+  loadMesasFechadas();
+}
+
+/* Garçom: lançar pedido numa mesa */
+let launchCart = [], launchSessionId = null, launchProducts = [], launchCats = [], launchActiveCat = null;
+async function openLaunchModal(sessionId, label){
+  launchSessionId = sessionId; launchCart = [];
+  const [{ data: cats }, { data: prods }] = await Promise.all([
+    sb.from('categories').select('id,name').eq('active', true).order('sort_order'),
+    sb.from('products').select('id,name,price,image_url,category_id,available').eq('active', true).eq('show_on_mesa', true).order('name')
+  ]);
+  launchCats = cats || []; launchProducts = (prods||[]).filter(p => p.available);
+  launchActiveCat = launchCats.length ? launchCats[0].id : null;
+  openModal(`Lançar pedido — ${label}`, `
+    <div id="launchCats" class="pos-cat-row"></div>
+    <div id="launchGrid" class="pos-prod-grid" style="max-height:240px;overflow:auto"></div>
+    <h4 style="margin:14px 0 6px;font-size:.95rem">Itens a enviar</h4>
+    <div id="launchList"></div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn btn-primary" onclick="sendLaunch()">Enviar para a cozinha</button><button class="btn btn-outline" onclick="closeModal()">Cancelar</button></div>`);
+  renderLaunch();
+}
+function renderLaunch(){
+  document.getElementById('launchCats').innerHTML = launchCats.map(c => `<button type="button" class="pos-cat-tile ${c.id===launchActiveCat?'active':''}" onclick="launchActiveCat='${c.id}';renderLaunch()">${c.name}</button>`).join('');
+  const items = launchProducts.filter(p => p.category_id === launchActiveCat);
+  document.getElementById('launchGrid').innerHTML = items.length ? items.map(p => `
+    <div class="pos-prod-tile" onclick="launchAdd('${p.id}')">
+      <div class="thumb">${p.image_url ? `<img src="${p.image_url}" alt="">` : pdvEmoji(p.name)}</div>
+      <div class="pinfo"><b>${p.name}</b><span>${money(p.price)}</span></div>
+    </div>`).join('') : '<p class="empty">Nenhum produto nesta categoria.</p>';
+  document.getElementById('launchList').innerHTML = launchCart.length ? launchCart.map(i => `
+    <div class="pdv-item-row"><span>${i.qty}x ${i.name}</span>
+      <span class="pdv-item-controls"><button class="btn btn-outline btn-sm" onclick="launchQty('${i.id}',-1)">−</button><button class="btn btn-outline btn-sm" onclick="launchQty('${i.id}',1)">+</button></span></div>`).join('') : '<p class="empty">Toque nos produtos para adicionar.</p>';
+}
+function launchAdd(id){
+  const p = launchProducts.find(x => x.id === id); if(!p) return;
+  const ex = launchCart.find(i => i.id === id);
+  if(ex) ex.qty++; else launchCart.push({ id:p.id, name:p.name, price:p.price, qty:1 });
+  renderLaunch();
+}
+function launchQty(id, d){
+  const it = launchCart.find(i => i.id === id); if(!it) return;
+  it.qty += d; if(it.qty <= 0) launchCart = launchCart.filter(i => i.id !== id);
+  renderLaunch();
+}
+async function sendLaunch(){
+  if(!launchCart.length){ toast('Adicione ao menos um item.'); return; }
+  const { error } = await sb.from('table_orders').insert({ session_id: launchSessionId, items: launchCart, status:'novo' });
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Pedido enviado para a cozinha!');
+  closeModal();
+  loadMesasAbertas();
+}
+
+async function loadTables(){
+  const { data, error } = await sb.from('restaurant_tables').select('*').order('created_at');
+  const tbody = document.querySelector('#tablesTable tbody');
+  if(error){ tbody.innerHTML = `<tr><td colspan="3" class="empty">Erro: ${error.message}</td></tr>`; return; }
+  if(!data.length){ tbody.innerHTML = `<tr><td colspan="3" class="empty">Nenhuma mesa cadastrada ainda.</td></tr>`; return; }
+  tbody.innerHTML = data.map(t => `
+    <tr>
+      <td><b>${t.label}</b></td>
+      <td><span class="pill ${t.active?'on':'off'}">${t.active?'Ativa':'Inativa'}</span></td>
+      <td class="btn-row">
+        <button class="btn btn-outline btn-sm" onclick="showTableQR('${t.id}','${(t.label||'').replace(/'/g,"&#39;")}','${t.qr_token}')">Ver QR</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleTableActive('${t.id}', ${!t.active})">${t.active?'Desativar':'Ativar'}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTable('${t.id}')">Excluir</button>
+      </td>
+    </tr>`).join('');
+}
+document.getElementById('tableForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const label = document.getElementById('tf_label').value.trim();
+  if(!label) return;
+  const { error } = await sb.from('restaurant_tables').insert({ label });
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Mesa criada!');
+  e.target.reset();
+  loadTables();
+});
+async function toggleTableActive(id, newActive){
+  const { error } = await sb.from('restaurant_tables').update({ active: newActive }).eq('id', id);
+  if(error){ toast('Erro: ' + error.message); return; }
+  loadTables();
+}
+async function deleteTable(id){
+  if(!confirm('Excluir esta mesa? O QR code impresso deixará de funcionar.')) return;
+  const { error } = await sb.from('restaurant_tables').delete().eq('id', id);
+  if(error){ toast('Erro: ' + error.message); return; }
+  toast('Mesa excluída.');
+  loadTables();
+}
+function showTableQR(id, label, token){
+  const url = `${window.location.origin}${window.location.pathname.replace(/admin\/painel\.html$/,'')}mesa.html?t=${token}`;
+  const html = `
+    <div style="text-align:center">
+      <div id="qrCanvas" style="display:inline-block;padding:16px;background:#fff;border-radius:12px;"></div>
+      <p class="hint" style="margin-top:12px;word-break:break-all">${url}</p>
+      <button class="btn btn-outline btn-sm" type="button" onclick="navigator.clipboard.writeText('${url}');toast('Link copiado!')">Copiar link</button>
+    </div>`;
+  openModal(`QR — ${label}`, html);
+  setTimeout(() => {
+    const el = document.getElementById('qrCanvas');
+    if(el && window.QRCode) new QRCode(el, { text: url, width: 200, height: 200 });
+  }, 50);
+}
+
 /* USUÁRIOS */
 async function loadUsers(){
   document.getElementById('newUserCard').style.display = ME.role === 'master' ? '' : 'none';
@@ -1321,7 +1740,7 @@ async function saveUserRow(id){
 /* PERMISSÕES POR USUÁRIO */
 const PERM_MODULE_LABELS = {
   produtos:'Produtos & estoque', categorias:'Categorias', banners:'Banners',
-  links:'Links & redes', config:'Configurações (nome, textos técnicos, WhatsApp)', textos:'Frases do site (Sobre, Festas, etc.)', pedidos:'Pedidos do site', pdv:'PDV / Caixa', usuarios:'Usuários'
+  links:'Links & redes', config:'Configurações (nome, textos técnicos, WhatsApp)', textos:'Frases do site (Sobre, Festas, etc.)', pedidos:'Pedidos do site', pdv:'PDV / Caixa', cozinha:'Cozinha (ver e mudar status dos pedidos)', mesas:'Mesas (QR Code)', usuarios:'Usuários'
 };
 function permSelect(mod, value){
   const opts = ['none','view','edit'].map(v => `<option value="${v}" ${value===v?'selected':''}>${v==='none'?'Sem acesso':v==='view'?'Só visualizar':'Ver e editar'}</option>`).join('');
@@ -1329,7 +1748,7 @@ function permSelect(mod, value){
 }
 async function openPermissionsModal(userId, userName){
   const { data: perms } = await sb.from('user_permissions').select('*').eq('user_id', userId).maybeSingle();
-  const p = perms || { produtos:'none', categorias:'none', banners:'none', links:'none', config:'none', textos:'none', cores:false, pedidos:'none', pedidos_delete:false, pdv:'none', pdv_delete:false, usuarios:'none' };
+  const p = perms || { produtos:'none', categorias:'none', banners:'none', links:'none', config:'none', textos:'none', cores:false, pedidos:'none', pedidos_delete:false, pdv:'none', pdv_delete:false, mesas:'none', mesas_reopen:false, cozinha:'none', usuarios:'none' };
   const html = `
     <form id="permForm" class="stack" data-user="${userId}">
       ${permSelect('produtos', p.produtos)}
@@ -1343,8 +1762,11 @@ async function openPermissionsModal(userId, userName){
       <div class="switch-row"><input type="checkbox" id="perm_pedidos_delete" ${p.pedidos_delete?'checked':''}> <label for="perm_pedidos_delete" style="margin:0">Pode excluir pedidos (não só cancelar)</label></div>
       ${permSelect('pdv', p.pdv)}
       <div class="switch-row"><input type="checkbox" id="perm_pdv_delete" ${p.pdv_delete?'checked':''}> <label for="perm_pdv_delete" style="margin:0">Pode excluir vendas do PDV (não só cancelar)</label></div>
+      ${permSelect('cozinha', p.cozinha)}
+      ${permSelect('mesas', p.mesas)}
+      <div class="switch-row"><input type="checkbox" id="perm_mesas_reopen" ${p.mesas_reopen?'checked':''}> <label for="perm_mesas_reopen" style="margin:0">Pode reabrir mesas fechadas</label></div>
       ${permSelect('usuarios', p.usuarios)}
-      <div class="field-hint">Ninguém além do MASTER pode se tornar (ou tornar outra pessoa) MASTER — isso é bloqueado mesmo com acesso a "Usuários".</div>
+      <div class="field-hint">Ninguém além do MASTER pode se tornar (ou tornar outra pessoa) MASTER — isso é bloqueado mesmo com acesso a "Usuários". O módulo de Mesas só funciona se estiver ligado em Configurações.</div>
       <div class="btn-row"><button class="btn btn-primary" type="submit">Salvar permissões</button><button class="btn btn-outline" type="button" onclick="closeModal()">Cancelar</button></div>
     </form>`;
   openModal(`Permissões — ${userName}`, html);
@@ -1352,12 +1774,13 @@ async function openPermissionsModal(userId, userName){
     e.preventDefault();
     const form = e.target;
     const payload = { user_id: userId };
-    ['produtos','categorias','banners','links','config','textos','pedidos','pdv','usuarios'].forEach(mod => {
+    ['produtos','categorias','banners','links','config','textos','pedidos','pdv','cozinha','mesas','usuarios'].forEach(mod => {
       payload[mod] = form.querySelector(`[data-perm="${mod}"]`).value;
     });
     payload.cores = document.getElementById('perm_cores').checked;
     payload.pedidos_delete = document.getElementById('perm_pedidos_delete').checked;
     payload.pdv_delete = document.getElementById('perm_pdv_delete').checked;
+    payload.mesas_reopen = document.getElementById('perm_mesas_reopen').checked;
     try{
       const { error } = await sb.from('user_permissions').upsert(payload, { onConflict: 'user_id' });
       if(error) throw error;

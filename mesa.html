@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Peça pela mesa — Tati Oyama</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="./assets/logo-cocoa.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#FDFBF7; --bg-alt:#F5F0E8; --cocoa:#3D2B1F; --cocoa-muted:#6B5D52;
+    --ready:#556B2F; --wheat-light:#F1D9A0; --order:#C08A3E; --wheat-dark:#8B5E34;
+    --cta:#B3402A; --cta-dark:#8F3020;
+    --line:rgba(61,43,31,.1); --line-strong:rgba(61,43,31,.2);
+    --radius:14px; --serif:'Cormorant Garamond',Georgia,serif; --sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    --ease:cubic-bezier(0.16,1,0.3,1); --sombra:0 18px 40px -20px rgba(61,43,31,.25);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--cocoa);font-family:var(--sans);font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased;padding-bottom:90px;}
+  h1,h2,h3,.serif{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;}
+  img{max-width:100%;display:block;}
+  button{font-family:inherit;cursor:pointer;}
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+
+  #preloader{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .4s ease,visibility .4s ease;}
+  #preloader img{width:88px;animation:pulseLogo 1.3s ease-in-out infinite;}
+  @keyframes pulseLogo{0%,100%{opacity:.55;transform:scale(.94);}50%{opacity:1;transform:scale(1);}}
+  #preloader.hide{opacity:0;visibility:hidden;pointer-events:none;}
+
+  #blockedScreen{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;gap:1rem;}
+  #blockedScreen img{width:80px;margin-bottom:.5rem;opacity:.8;}
+  #blockedScreen h2{font-size:1.6rem;}
+  #blockedScreen p{color:var(--cocoa-muted);max-width:34ch;}
+
+  header.mesa-header{background:var(--cocoa);color:var(--bg);padding:1.2rem 0;text-align:center;}
+  header.mesa-header img{height:38px;margin:0 auto .7rem;}
+  .mesa-badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(253,251,247,.1);border:1px solid rgba(253,251,247,.25);padding:.4rem 1rem;border-radius:999px;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;}
+  .mesa-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--ready);}
+
+  .intro{padding:1.6rem 0 .6rem;text-align:center;}
+  .intro p{color:var(--cocoa-muted);font-size:.92rem;max-width:44ch;margin:0 auto;}
+
+  .accum{margin:1.2rem 0;padding:1.1rem 1.2rem;background:var(--bg-alt);border-radius:var(--radius);border:1px solid var(--line);}
+  .accum h3{font-size:1rem;margin-bottom:.7rem;color:var(--cocoa);}
+  .accum-round{padding:.6rem 0;border-bottom:.5px dashed var(--line-strong);font-size:.86rem;}
+  .accum-round:last-child{border-bottom:none;}
+  .accum-round .rline{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px;}
+  .accum-items{color:var(--cocoa-muted);font-size:.82rem;}
+  .round-status{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.25rem .6rem;border-radius:999px;white-space:nowrap;}
+  .rs-novo{background:rgba(192,138,62,.15);color:var(--order);}
+  .rs-preparando{background:rgba(192,138,62,.15);color:var(--order);}
+  .rs-pronto{background:rgba(85,107,47,.15);color:var(--ready);}
+  .rs-entregue{background:rgba(85,107,47,.15);color:var(--ready);}
+  .rs-cancelado{background:rgba(176,35,63,.1);color:#B0233F;}
+
+  .cats-scroll{display:flex;gap:10px;overflow-x:auto;padding:.4rem 0 1rem;}
+  .cat-pill{flex:0 0 auto;padding:.55rem 1.2rem;border-radius:999px;background:transparent;border:.5px solid var(--line-strong);font-weight:500;font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--cocoa-muted);white-space:nowrap;text-decoration:none;}
+  .cat-pill.active,.cat-pill:hover{background:var(--cocoa);color:var(--bg);border-color:var(--cocoa);}
+
+  .cat-section{margin-bottom:2.2rem;scroll-margin-top:14px;}
+  .cat-section h3{font-size:1.3rem;margin-bottom:1rem;color:var(--cocoa);}
+  .grid-products{display:grid;grid-template-columns:1fr 1fr;gap:1rem .8rem;}
+  .product-card{display:flex;flex-direction:column;}
+  .product-image-wrap{position:relative;width:100%;aspect-ratio:4/5;overflow:hidden;background:var(--bg-alt);margin-bottom:.6rem;border-radius:14px;border:1px solid var(--line);}
+  .product-image-wrap img{width:100%;height:100%;object-fit:cover;}
+  .product-image-wrap .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.4rem;background:linear-gradient(135deg,var(--bg-alt),var(--bg));}
+  .tag-badge{position:absolute;top:.5rem;left:.5rem;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.28rem .55rem;border-radius:999px;color:#fff;}
+  .tag-off{background:rgba(61,43,31,.85);}
+  .tag-order{background:rgba(192,138,62,.92);}
+  .product-info h3{font-size:1rem;font-weight:500;line-height:1.2;margin-bottom:.15rem;}
+  .product-info .desc{display:none;}
+  .product-row{display:flex;align-items:center;justify-content:space-between;margin-top:.4rem;}
+  .price{font-weight:600;color:var(--cocoa);font-size:1rem;font-family:var(--serif);}
+  .add-btn{background:var(--cta);color:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:1.2rem;line-height:1;display:flex;align-items:center;justify-content:center;}
+  .add-btn:disabled{background:#ddd0c2;}
+
+  .cart-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--cocoa);color:var(--bg);padding:.9rem 1.2rem;display:none;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 -10px 30px -10px rgba(0,0,0,.3);}
+  .cart-bar.show{display:flex;}
+  .cart-bar .cb-info{font-size:.82rem;}
+  .cart-bar .cb-total{font-family:var(--serif);font-size:1.3rem;}
+  .cart-bar button{background:var(--cta);color:#fff;border:none;padding:.75rem 1.3rem;border-radius:999px;font-weight:700;font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;}
+
+  .overlay{position:fixed;inset:0;background:rgba(61,43,31,.45);z-index:60;display:none;}
+  .overlay.open{display:block;}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(440px,92vw);background:var(--bg);z-index:61;transform:translateX(100%);transition:transform .3s var(--ease);display:flex;flex-direction:column;}
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{padding:1.3rem 1.5rem 1rem;border-bottom:.5px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .drawer-head h3{font-family:var(--serif);font-size:1.4rem;font-weight:500;}
+  .drawer-close{background:none;border:none;font-size:1.3rem;color:var(--cocoa-muted);}
+  .drawer-body{padding:1rem 1.5rem;overflow-y:auto;flex:1;}
+  .empty-cart{color:var(--cocoa-muted);font-size:.9rem;text-align:center;padding:3rem 0;}
+  .cart-item{display:flex;gap:12px;padding:12px;border-radius:16px;background:var(--bg-alt);margin-bottom:10px;}
+  .cart-item img,.cart-item .ph-sm{width:54px;height:54px;border-radius:12px;object-fit:cover;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+  .cart-item .info{flex:1;min-width:0;}
+  .cart-item .info b{display:block;font-size:.9rem;font-weight:600;}
+  .cart-item .item-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+  .qty-stepper{display:inline-flex;align-items:center;background:#fff;border-radius:999px;padding:3px;box-shadow:inset 0 0 0 1px var(--line);}
+  .qty-stepper button{width:25px;height:25px;border-radius:50%;border:none;background:transparent;font-weight:700;color:var(--cocoa);}
+  .qty-stepper .qty-val{min-width:20px;text-align:center;font-weight:700;font-size:.82rem;}
+  .rm-btn{width:26px;height:26px;border-radius:50%;border:none;background:transparent;color:var(--cocoa-muted);}
+  .drawer-foot{padding:1.2rem 1.5rem 1.5rem;border-top:.5px solid var(--line);display:none;}
+  .drawer-foot .field{margin-bottom:12px;}
+  .drawer-foot label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--cocoa-muted);display:block;margin-bottom:6px;}
+  .drawer-foot input{width:100%;padding:12px 14px;border-radius:14px;border:1px solid transparent;background:var(--bg-alt);font-family:inherit;font-size:.9rem;color:var(--cocoa);}
+  .drawer-foot input:focus{outline:none;background:#fff;box-shadow:0 0 0 4px rgba(192,138,62,.13);}
+  .btn-send{width:100%;background:var(--cta);color:#fff;border:none;border-radius:999px;padding:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:.86rem;}
+  .btn-send:disabled{background:#ddd0c2;}
+
+  #toast{position:fixed;left:50%;bottom:100px;transform:translate(-50%,20px);background:var(--cocoa);color:var(--bg);padding:14px 22px;border-radius:999px;font-size:.86rem;font-weight:500;z-index:120;opacity:0;pointer-events:none;transition:all .35s var(--ease);box-shadow:0 14px 30px -10px rgba(0,0,0,.35);max-width:90vw;text-align:center;}
+  #toast.show{opacity:1;transform:translate(-50%,0);}
+</style>
+</head>
+<body>
+
+<div id="preloader"><img src="./assets/logo-cocoa.png" alt=""></div>
+
+<div id="blockedScreen">
+  <img src="./assets/logo-cocoa.png" alt="">
+  <h2 id="blockedTitle">Ops!</h2>
+  <p id="blockedMsg">Não foi possível carregar o cardápio da mesa.</p>
+</div>
+
+<div id="appRoot" style="display:none">
+  <header class="mesa-header">
+    <img id="headerLogo" src="./assets/logo-white.png" alt="Tati Oyama">
+    <div class="mesa-badge"><span class="dot"></span><span id="mesaLabel">Mesa</span></div>
+  </header>
+
+  <div class="wrap">
+    <div class="intro">
+      <p>Monte seu pedido e envie direto para a cozinha. Você pode pedir mais de uma vez — é só adicionar e enviar de novo.</p>
+    </div>
+
+    <div class="accum" id="accumBox" style="display:none">
+      <h3>Já enviado para a cozinha</h3>
+      <div id="accumList"></div>
+    </div>
+
+    <div class="cats-scroll" id="catNav"></div>
+    <div id="catalogo"></div>
+  </div>
+</div>
+
+<div class="cart-bar" id="cartBar">
+  <div class="cb-info">Seu pedido<br><span class="cb-total" id="cbTotal">R$ 0,00</span></div>
+  <button onclick="openCart()">Ver pedido</button>
+</div>
+
+<div id="toast"></div>
+
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<aside class="drawer" id="cartDrawer">
+  <div class="drawer-head">
+    <h3>Seu pedido</h3>
+    <button class="drawer-close" onclick="closeCart()">✕</button>
+  </div>
+  <div class="drawer-body" id="cartBody">
+    <div class="empty-cart">Nenhum item novo ainda.<br>Adicione algo do cardápio ao lado.</div>
+  </div>
+  <div class="drawer-foot" id="cartFoot">
+    <div class="field" id="nameField">
+      <label>Seu nome (opcional)</label>
+      <input id="custName" placeholder="Como podemos te chamar?">
+    </div>
+    <button class="btn-send" id="sendBtn" onclick="sendToKitchen()">Enviar pedido para a cozinha</button>
+  </div>
+</aside>
+
+<script>
+const SUPABASE_URL = "https://muyafaecbftctxvwxpyy.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_efNcP5ircj5xCyEPnGilZg_a9EbNBlQ";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const money = v => (Number(v)||0).toLocaleString('pt-BR',{style:'currency', currency:'BRL'});
+const params = new URLSearchParams(window.location.search);
+const qrToken = params.get('t');
+
+let SETTINGS = {}, CATEGORIES = [], PRODUCTS = [], TABLE = null, SESSION_ID = null;
+let cart = [];
+
+function hidePreloader(){ document.getElementById('preloader').classList.add('hide'); }
+function showBlocked(title, msg){
+  document.getElementById('preloader').classList.add('hide');
+  document.getElementById('appRoot').style.display = 'none';
+  document.getElementById('blockedTitle').textContent = title;
+  document.getElementById('blockedMsg').textContent = msg;
+  document.getElementById('blockedScreen').style.display = 'flex';
+}
+
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function placeholderThumb(seed){
+  const emojis = ['🍞','🥐','🍰','🧁','🍬'];
+  let h=0; for(const c of (seed||'')) h=(h*31+c.charCodeAt(0))|0;
+  return `<div class="ph">${emojis[Math.abs(h)%emojis.length]}</div>`;
+}
+
+async function boot(){
+  if(!qrToken){ showBlocked('QR inválido', 'Não encontramos o código desta mesa. Peça ajuda a alguém da equipe.'); return; }
+  try{
+    const { data: settingsRows } = await sb.from('site_settings').select('key,value');
+    (settingsRows||[]).forEach(r => SETTINGS[r.key] = r.value);
+
+    if(SETTINGS.mesa_module_ativo !== 'true'){
+      showBlocked('Pedido pela mesa indisponível', 'No momento não estamos aceitando pedidos por QR code. Fale com a equipe no balcão.');
+      return;
+    }
+
+    const { data: table, error: tableErr } = await sb.from('restaurant_tables').select('*').eq('qr_token', qrToken).eq('active', true).maybeSingle();
+    if(tableErr || !table){
+      showBlocked('Mesa não encontrada', 'Este código não corresponde a nenhuma mesa ativa. Peça ajuda a alguém da equipe.');
+      return;
+    }
+    TABLE = table;
+
+    applyTheme();
+    document.getElementById('mesaLabel').textContent = table.label;
+
+    await ensureSession();
+
+    const [{ data: cats }, { data: prods }] = await Promise.all([
+      sb.from('categories').select('*').eq('active', true).eq('show_on_site', true).order('sort_order'),
+      sb.from('products').select('*').eq('active', true).eq('show_on_site', true).eq('show_on_mesa', true).order('sort_order')
+    ]);
+    CATEGORIES = cats || []; PRODUCTS = prods || [];
+
+    renderCategories();
+    renderCatalogo();
+    await loadAccumulated();
+
+    document.getElementById('appRoot').style.display = 'block';
+    hidePreloader();
+
+    setInterval(loadAccumulated, 20000);
+  }catch(e){
+    console.error(e);
+    showBlocked('Algo deu errado', 'Não foi possível carregar o cardápio agora. Tente atualizar a página.');
+  }
+}
+
+function applyTheme(){
+  const root = document.documentElement.style;
+  if(SETTINGS.primary_color) root.setProperty('--cocoa', SETTINGS.primary_color);
+  if(SETTINGS.accent_color) root.setProperty('--order', SETTINGS.accent_color);
+  if(SETTINGS.cta_color) root.setProperty('--cta', SETTINGS.cta_color);
+  const logoWhite = SETTINGS.logo_white || './assets/logo-white.png';
+  document.getElementById('headerLogo').src = logoWhite;
+  document.getElementById('preloader').querySelector('img').src = SETTINGS.logo_url || './assets/logo-cocoa.png';
+  document.getElementById('blockedScreen').querySelector('img').src = SETTINGS.logo_url || './assets/logo-cocoa.png';
+}
+
+async function ensureSession(){
+  const storageKey = 'mesa_session_' + qrToken;
+  const savedId = localStorage.getItem(storageKey);
+  if(savedId){
+    const { data: existing } = await sb.from('table_sessions').select('*').eq('id', savedId).maybeSingle();
+    if(existing && existing.status === 'aberta' && existing.table_id === TABLE.id){
+      SESSION_ID = existing.id;
+      return;
+    }
+  }
+  const { data: created, error } = await sb.from('table_sessions').insert({ table_id: TABLE.id }).select().single();
+  if(error){ throw error; }
+  SESSION_ID = created.id;
+  localStorage.setItem(storageKey, SESSION_ID);
+}
+
+function renderCategories(){
+  const nav = document.getElementById('catNav');
+  nav.innerHTML = CATEGORIES.map((c,i) => `<a class="cat-pill ${i===0?'active':''}" href="#cat-${c.slug}">${c.name}</a>`).join('');
+}
+
+function productCard(p){
+  const outOfStock = !p.available;
+  const isOrder = p.available && (p.stock === 0 || p.stock == null);
+  const img = p.image_url ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy">` : placeholderThumb(p.name);
+  let badge = '';
+  if(outOfStock) badge = '<span class="tag-badge tag-off">Esgotado</span>';
+  else if(isOrder) badge = '<span class="tag-badge tag-order">Sob Encomenda</span>';
+  return `
+  <div class="product-card">
+    <div class="product-image-wrap">${badge}${img}</div>
+    <div class="product-info">
+      <h3>${p.name}</h3>
+      <div class="product-row">
+        <span class="price">${money(p.price)}</span>
+        <button class="add-btn" ${outOfStock?'disabled':''} onclick="addToCart('${p.id}')" aria-label="Adicionar">+</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCatalogo(){
+  const el = document.getElementById('catalogo');
+  el.innerHTML = CATEGORIES.map(c => {
+    const items = PRODUCTS.filter(p => p.category_id === c.id);
+    if(!items.length) return '';
+    return `<div id="cat-${c.slug}" class="cat-section"><h3>${c.name}</h3><div class="grid-products">${items.map(productCard).join('')}</div></div>`;
+  }).join('');
+}
+
+const ROUND_LABELS = {novo:'Recebido', preparando:'Preparando', pronto:'Pronto', entregue:'Entregue', cancelado:'Cancelado'};
+async function loadAccumulated(){
+  const { data } = await sb.from('table_orders').select('*').eq('session_id', SESSION_ID).order('created_at');
+  const box = document.getElementById('accumBox');
+  const list = document.getElementById('accumList');
+  if(!data || !data.length){ box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  list.innerHTML = data.map((r,i) => {
+    const itemsTxt = (r.items||[]).map(it => `${it.qty}x ${it.name}`).join(', ');
+    return `<div class="accum-round">
+      <div class="rline"><b>Pedido ${i+1}</b><span class="round-status rs-${r.status}">${ROUND_LABELS[r.status]||r.status}</span></div>
+      <div class="accum-items">${itemsTxt}</div>
+    </div>`;
+  }).join('');
+}
+
+function addToCart(id){
+  const p = PRODUCTS.find(x => x.id === id);
+  if(!p) return;
+  const existing = cart.find(i => i.id === id);
+  if(existing) existing.qty += 1;
+  else cart.push({id:p.id, name:p.name, price:p.price, image_url:p.image_url, qty:1});
+  renderCart();
+  openCart();
+}
+function changeQty(id, delta){
+  const item = cart.find(i => i.id === id);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty <= 0) cart = cart.filter(i => i.id !== id);
+  renderCart();
+}
+function removeItem(id){ cart = cart.filter(i => i.id !== id); renderCart(); }
+
+function renderCart(){
+  const body = document.getElementById('cartBody');
+  const foot = document.getElementById('cartFoot');
+  const bar = document.getElementById('cartBar');
+  const total = cart.reduce((s,i) => s + i.price*i.qty, 0);
+  const qty = cart.reduce((s,i) => s + i.qty, 0);
+
+  if(!cart.length){
+    body.innerHTML = '<div class="empty-cart">Nenhum item novo ainda.<br>Adicione algo do cardápio ao lado.</div>';
+    foot.style.display = 'none';
+    bar.classList.remove('show');
+    return;
+  }
+  foot.style.display = 'block';
+  bar.classList.add('show');
+  document.getElementById('cbTotal').textContent = money(total);
+  body.innerHTML = cart.map(i => `
+    <div class="cart-item">
+      ${i.image_url ? `<img src="${i.image_url}" alt="${i.name}">` : `<div class="ph-sm">🥐</div>`}
+      <div class="info">
+        <b>${i.name}</b>
+        <div class="item-bottom">
+          <div class="qty-stepper">
+            <button onclick="changeQty('${i.id}',-1)">−</button>
+            <span class="qty-val">${i.qty}</span>
+            <button onclick="changeQty('${i.id}',1)">+</button>
+          </div>
+          <button class="rm-btn" onclick="removeItem('${i.id}')">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function openCart(){ document.getElementById('overlay').classList.add('open'); document.getElementById('cartDrawer').classList.add('open'); }
+function closeCart(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('cartDrawer').classList.remove('open'); }
+
+async function sendToKitchen(){
+  if(!cart.length) return;
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try{
+    const name = document.getElementById('custName').value.trim();
+    if(name && !TABLE.customer_name_set){
+      await sb.from('table_sessions').update({ customer_name: name }).eq('id', SESSION_ID);
+      TABLE.customer_name_set = true;
+    }
+    const { error } = await sb.from('table_orders').insert({
+      session_id: SESSION_ID,
+      items: cart.map(i => ({ id:i.id, name:i.name, price:i.price, qty:i.qty })),
+      status: 'novo'
+    });
+    if(error) throw error;
+    cart = [];
+    renderCart();
+    closeCart();
+    showToast('Pedido enviado para a cozinha! 🎉');
+    loadAccumulated();
+  }catch(e){
+    console.error(e);
+    showToast('Não foi possível enviar. Tente novamente.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Enviar pedido para a cozinha';
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
